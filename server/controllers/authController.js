@@ -251,7 +251,8 @@ export const googleCallback = async (req, res) => {
     
     // Redirect to the client's home/dashboard url
     let clientRedirectUrl = process.env.CLIENT_REDIRECT_URL;
-    if (!clientRedirectUrl) {
+    const isLocalhostRedirect = clientRedirectUrl && (clientRedirectUrl.includes('localhost') || clientRedirectUrl.includes('127.0.0.1'));
+    if (!clientRedirectUrl || ((process.env.NODE_ENV === 'production' || process.env.RENDER === 'true') && isLocalhostRedirect)) {
       clientRedirectUrl = (process.env.NODE_ENV === 'production' || process.env.RENDER === 'true') 
         ? `https://${req.get('host')}` 
         : 'http://localhost:5173';
