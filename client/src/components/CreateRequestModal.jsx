@@ -46,6 +46,54 @@ const CreateRequestModal = ({ isOpen, onClose, onRequestCreated }) => {
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+
+  const handleFileChange = async (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+
+    if (images.length + files.length > 5) {
+      setUploadError('Maximum 5 files allowed');
+      return;
+    }
+
+    setUploading(true);
+    setUploadError('');
+
+    try {
+      const uploadPromises = files.map(async (file) => {
+        // Read file as base64 Data URL
+        const base64Str = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = (error) => reject(error);
+        });
+
+        // POST to backend `/api/upload`
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: base64Str })
+        });
+        const data = await res.json();
+        if (data.success && data.url) {
+          return data.url;
+        } else {
+          throw new Error(data.message || 'Failed to upload one of the images');
+        }
+      });
+
+      const uploadedUrls = await Promise.all(uploadPromises);
+      setImages((prev) => [...prev, ...uploadedUrls]);
+    } catch (err) {
+      console.error('Upload handler error:', err);
+      setUploadError(err.message || 'Image upload failed. Please try again.');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -199,16 +247,57 @@ const CreateRequestModal = ({ isOpen, onClose, onRequestCreated }) => {
             ></textarea>
           </div>
 
-          {/* Uploader Mockup */}
-          <div className="space-y-1">
-            <label className="text-[11px] font-bold text-slate-400 block">Upload Images (Optional)</label>
-            <div className="border border-dashed border-darkBg-border/60 rounded-xl py-2 px-3 bg-[#0b0d19]/30 hover:bg-[#0b0d19]/60 transition-all flex items-center justify-center gap-3 cursor-pointer group">
-              <Upload className="w-5 h-5 text-slate-500 group-hover:text-brand transition-colors" />
+          {/* Uploader Interactive Widget */}
+          <div className="space-y-1.5">
+            <div className="flex justify-between items-baseline">
+              <label className="text-[11px] font-bold text-slate-400 block">Upload Images (Optional)</label>
+              {uploadError && <span className="text-[10px] text-red-400 font-semibold">{uploadError}</span>}
+            </div>
+            
+            <input 
+              type="file" 
+              accept="image/*" 
+              multiple 
+              onChange={handleFileChange} 
+              className="hidden" 
+              id="request-image-upload"
+              disabled={uploading}
+            />
+            
+            <label 
+              htmlFor="request-image-upload"
+              className={`border border-dashed rounded-xl py-2 px-3 transition-all flex items-center justify-center gap-3 cursor-pointer group ${
+                uploading 
+                  ? 'border-brand/40 bg-brand/5 cursor-wait' 
+                  : 'border-darkBg-border/60 bg-[#0b0d19]/30 hover:bg-[#0b0d19]/60 hover:border-brand/50'
+              }`}
+            >
+              <Upload className={`w-5 h-5 transition-colors ${uploading ? 'text-brand animate-bounce' : 'text-slate-500 group-hover:text-brand'}`} />
               <div className="text-left">
-                <span className="text-xs font-bold text-slate-300 block leading-tight">Click to upload or drag and drop</span>
+                <span className="text-xs font-bold text-slate-300 block leading-tight">
+                  {uploading ? 'Uploading assets...' : 'Click to upload or drag and drop'}
+                </span>
                 <span className="text-[9px] text-slate-500 block mt-0.5">PNG, JPG or WEBP (Max 5 files)</span>
               </div>
-            </div>
+            </label>
+
+            {/* Preview Thumbnails */}
+            {images.length > 0 && (
+              <div className="flex gap-2.5 overflow-x-auto py-1.5 form-scrollbar">
+                {images.map((imgUrl, idx) => (
+                  <div key={idx} className="relative w-14 h-14 rounded-xl overflow-hidden border border-darkBg-border/80 flex-shrink-0 group shadow-md">
+                    <img src={imgUrl} alt="Uploaded request preview" className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setImages(images.filter((_, i) => i !== idx))}
+                      className="absolute top-0.5 right-0.5 bg-black/75 hover:bg-red-500 text-white rounded-full p-0.5 transition-all opacity-80 group-hover:opacity-100 shadow-sm"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Actions */}

@@ -11,6 +11,7 @@ import requestRoutes from './routes/requestRoutes.js';
 import bidRoutes from './routes/bidRoutes.js';
 import messageRoutes from './routes/messageRoutes.js';
 import amazonRoutes from './routes/amazonRoutes.js';
+import uploadRoutes from './routes/uploadRoutes.js';
 
 
 // Load env vars
@@ -44,6 +45,7 @@ app.use('/api/requests', requestRoutes);
 app.use('/api/bids', bidRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/amazon', amazonRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // Serve static assets in production or on Render
 if (process.env.NODE_ENV === 'production' || process.env.RENDER === 'true') {
