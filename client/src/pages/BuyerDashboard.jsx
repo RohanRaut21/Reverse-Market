@@ -19,7 +19,7 @@ const chartData = [
   { name: 'Week 4', spent: 24500 },
 ];
 
-const BuyerDashboard = ({ onCreateRequestClick, onRequestClick, activeTab, setActiveTab }) => {
+const BuyerDashboard = ({ onCreateRequestClick, onRequestClick, activeTab, setActiveTab, notifications = [] }) => {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentFilter, setCurrentFilter] = useState('All');
@@ -319,25 +319,28 @@ const BuyerDashboard = ({ onCreateRequestClick, onRequestClick, activeTab, setAc
           <div className="bg-darkBg-card border border-darkBg-border rounded-3xl p-6 shadow-xl space-y-4">
             <div className="flex justify-between items-center">
               <h3 className="text-sm font-bold text-white">Notifications</h3>
-              <a href="#" className="text-[10px] text-brand hover:underline font-semibold">View All</a>
+              <button 
+                onClick={() => setActiveTab('notifications')}
+                className="text-[10px] text-brand hover:underline font-semibold"
+              >
+                View All
+              </button>
             </div>
 
             <div className="space-y-4 text-xs">
-              <div className="flex gap-3 items-start p-3 bg-darkBg border border-darkBg-border rounded-2xl">
-                <div className="w-2 h-2 rounded-full bg-brand mt-1.5 flex-shrink-0"></div>
-                <div>
-                  <h5 className="font-bold text-white">3 new bids received</h5>
-                  <p className="text-slate-400 text-[11px] mt-0.5">Check your Wireless Headphones request just now</p>
-                </div>
-              </div>
-
-              <div className="flex gap-3 items-start">
-                <div className="w-2 h-2 rounded-full bg-amber-400 mt-1.5 flex-shrink-0"></div>
-                <div>
-                  <h5 className="font-bold text-white">Price alert</h5>
-                  <p className="text-slate-400 text-[11px] mt-0.5">3 sellers lowered their bids on your request</p>
-                </div>
-              </div>
+              {notifications.length === 0 ? (
+                <div className="py-4 text-center text-slate-500 text-[11px]">No notifications yet.</div>
+              ) : (
+                notifications.slice(0, 3).map((notif) => (
+                  <div key={notif.id} className="flex gap-3 items-start">
+                    <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${notif.unread ? 'bg-brand' : 'bg-slate-600'}`}></div>
+                    <div>
+                      <h5 className="font-bold text-white">{notif.title}</h5>
+                      <p className="text-slate-400 text-[11px] mt-0.5">{notif.desc}</p>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 

@@ -9,6 +9,7 @@ import {
   TrendingUp,
   MessageSquare,
   ArrowRight,
+  Bell,
 } from "lucide-react";
 
 const SellerDashboard = ({
@@ -17,6 +18,7 @@ const SellerDashboard = ({
   onViewRequestClick,
   activeTab,
   setActiveTab,
+  notifications = [],
 }) => {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -298,58 +300,34 @@ const SellerDashboard = ({
           <div className="bg-darkBg-card border border-darkBg-border rounded-3xl p-6 shadow-xl space-y-4">
             <div className="flex justify-between items-center">
               <h3 className="text-sm font-bold text-white">Recent Activity</h3>
-              <a
-                href="#"
+              <button
+                onClick={() => setActiveTab('notifications')}
                 className="text-[10px] text-brand hover:underline font-semibold"
               >
                 View All
-              </a>
+              </button>
             </div>
 
             <div className="space-y-4 text-xs">
-              <div className="flex gap-3">
-                <div className="w-7 h-7 rounded-full bg-brand/10 text-brand flex items-center justify-center flex-shrink-0">
-                  <Search className="w-3.5 h-3.5" />
-                </div>
-                <div>
-                  <p className="text-slate-300">
-                    Your bid on <strong>"Wireless Headphones"</strong> was
-                    viewed by the buyer
-                  </p>
-                  <span className="text-[10px] text-slate-500 mt-0.5 block">
-                    10m ago
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <div className="w-7 h-7 rounded-full bg-red-500/10 text-red-400 flex items-center justify-center flex-shrink-0">
-                  <Gavel className="w-3.5 h-3.5" />
-                </div>
-                <div>
-                  <p className="text-slate-300">
-                    You were outbid on <strong>"Gaming Laptop"</strong> by
-                    TechGear Solutions
-                  </p>
-                  <span className="text-[10px] text-slate-500 mt-0.5 block">
-                    1h ago
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <div className="w-7 h-7 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center flex-shrink-0">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                </div>
-                <div>
-                  <p className="text-slate-300">
-                    Your bid on <strong>"Bulk T-Shirts"</strong> was shortlisted
-                  </p>
-                  <span className="text-[10px] text-slate-500 mt-0.5 block">
-                    2h ago
-                  </span>
-                </div>
-              </div>
+              {notifications.length === 0 ? (
+                <div className="py-4 text-center text-slate-500 text-[11px]">No activity yet.</div>
+              ) : (
+                notifications.slice(0, 3).map((notif) => (
+                  <div key={notif.id} className="flex gap-3">
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${notif.unread ? 'bg-brand/10 text-brand' : 'bg-slate-500/10 text-slate-400'}`}>
+                      <Bell className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-slate-300 font-medium leading-relaxed pr-2">
+                        {notif.title}
+                      </p>
+                      <span className="text-[10px] text-slate-500 mt-0.5 block">
+                        {notif.time}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 

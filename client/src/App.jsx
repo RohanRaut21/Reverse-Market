@@ -77,19 +77,10 @@ function AppContent() {
 
   // Message & Notification count states
   const [messageCount, setMessageCount] = useState(0);
-  const [buyerNotifications, setBuyerNotifications] = useState([
-    { id: 1, title: "New bid received on 'Wireless Headphones'", desc: "TechWorld India placed a bid of ₹9,800 with 3 days delivery timeline.", time: "2m ago", unread: true },
-    { id: 2, title: "Seller replied to your message", desc: "Arjun Verma: 'Hi Rohan, I have placed a bid on your wireless headphones...'", time: "1h ago", unread: true },
-    { id: 3, title: "Request deadline closed", desc: "Bidding is closed for your request 'Gaming Laptop' as it reached its deadline.", time: "2h ago", unread: false },
-    { id: 4, title: "You accepted a bid", desc: "You accepted Shree Traders' bid of ₹48,000 for 'Interior Design for 2BHK'.", time: "1 day ago", unread: false },
-    { id: 5, title: "Deadline warning", desc: "Deadline approaching for 'Ergonomic Office Chair' - 3 days left.", time: "3 days ago", unread: false }
-  ]);
-  const [sellerNotifications, setSellerNotifications] = useState([
-    { id: 1, title: "Your bid was shortlisted!", desc: "Rohan Sharma shortlisted your bid of ₹72,000 for 'Gaming Laptop'. Details being reviewed.", time: "10 May 2026", unread: true },
-    { id: 2, title: "Bid Accepted! Contract Created!", desc: "Shree Traders accepted your bid of ₹48,000 for 'Interior Design'. Escrow holding initialized.", time: "15 May 2026", unread: true },
-    { id: 3, title: "New Request posted in Electronics", desc: "A buyer has requested 'Office Workstation setup' with a budget of ₹45,000.", time: "20 May 2026", unread: false },
-    { id: 4, title: "Outbid notification", desc: "Your bid for 'Wireless Headphones' was outbid by Shree Traders.", time: "25 May 2026", unread: false }
-  ]);
+  const [buyerNotifications, setBuyerNotifications] = useState([]);
+  const [sellerNotifications, setSellerNotifications] = useState([]);
+  const [hasOpenedMessages, setHasOpenedMessages] = useState(false);
+  const [hasOpenedNotifications, setHasOpenedNotifications] = useState(false);
 
   // Sync settings inputs when user data loads
   useEffect(() => {
@@ -141,11 +132,118 @@ function AppContent() {
     }
   };
 
+  // Helper to format relative time for dynamic notifications
+  const formatRelativeTime = (date) => {
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    return `${diffDays}d ago`;
+  };
+
+  // Fetch notifications dynamically based on bids and requests from the database
+  const fetchNotifications = async () => {
+    if (!user) return;
+    try {
+      if (activeRole === 'Buyer') {
+        const res = await fetch('/api/requests/my');
+        const data = await res.json();
+        if (data.success) {
+          const requests = data.data;
+          const allNotifications = [];
+          
+          for (const req of requests) {
+            if (req.bidCount > 0) {
+              const bidsRes = await fetch(`/api/bids/request/${req._id}`);
+              const bidsData = await bidsRes.json();
+              if (bidsData.success) {
+                bidsData.data.forEach((bid) => {
+                  const timeAgo = formatRelativeTime(new Date(bid.createdAt));
+                  allNotifications.push({
+                    id: `bid-${bid._id}`,
+                    title: `New bid received on '${req.title}'`,
+                    desc: `${bid.seller?.businessName || bid.seller?.name || 'A seller'} placed a bid of ₹${bid.bidAmount.toLocaleString()} with ${bid.deliveryTime} days delivery timeline.`,
+                    time: timeAgo,
+                    unread: !hasOpenedNotifications && bid.status === 'Pending',
+                    createdAt: bid.createdAt
+                  });
+                });
+              }
+            }
+          }
+          
+          allNotifications.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+          setBuyerNotifications(allNotifications);
+        }
+      } else {
+        const res = await fetch('/api/bids/my');
+        const data = await res.json();
+        if (data.success) {
+          const bids = data.data;
+          const allNotifications = [];
+          
+          bids.forEach((bid) => {
+            const timeAgo = formatRelativeTime(new Date(bid.updatedAt || bid.createdAt));
+            if (bid.status === 'Accepted') {
+              allNotifications.push({
+                id: `status-accepted-${bid._id}`,
+                title: `Bid Accepted! Contract Created!`,
+                desc: `The buyer accepted your bid of ₹${bid.bidAmount.toLocaleString()} for '${bid.request?.title}'.`,
+                time: timeAgo,
+                unread: !hasOpenedNotifications,
+                createdAt: bid.updatedAt || bid.createdAt
+              });
+            } else if (bid.status === 'Shortlisted') {
+              allNotifications.push({
+                id: `status-shortlisted-${bid._id}`,
+                title: `Your bid was shortlisted!`,
+                desc: `The buyer shortlisted your bid of ₹${bid.bidAmount.toLocaleString()} for '${bid.request?.title}'.`,
+                time: timeAgo,
+                unread: !hasOpenedNotifications,
+                createdAt: bid.updatedAt || bid.createdAt
+              });
+            } else if (bid.status === 'Outbid') {
+              allNotifications.push({
+                id: `status-outbid-${bid._id}`,
+                title: `Outbid notification`,
+                desc: `Your bid of ₹${bid.bidAmount.toLocaleString()} for '${bid.request?.title}' was outbid.`,
+                time: timeAgo,
+                unread: false,
+                createdAt: bid.updatedAt || bid.createdAt
+              });
+            }
+          });
+          
+          allNotifications.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+          setSellerNotifications(allNotifications);
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching dynamic notifications:', err);
+    }
+  };
+
   useEffect(() => {
     if (user) {
-      fetchConversationsCount();
+      if (activeTab === 'messages') {
+        setHasOpenedMessages(true);
+        setMessageCount(0);
+      } else {
+        fetchConversationsCount();
+      }
+
+      if (activeTab === 'notifications') {
+        setHasOpenedNotifications(true);
+      }
+
+      fetchNotifications();
     }
-  }, [user, activeTab]);
+  }, [user, activeTab, activeRole, hasOpenedNotifications]);
 
   const fetchBuyerRequests = async () => {
     try {
@@ -286,6 +384,7 @@ function AppContent() {
               }}
               activeTab={activeTab}
               setActiveTab={setActiveTab}
+              notifications={buyerNotifications}
             />
           );
         
@@ -316,6 +415,7 @@ function AppContent() {
                   }}
                   activeTab={activeTab}
                   setActiveTab={setActiveTab}
+                  notifications={buyerNotifications}
                 />
               </div>
             </div>
@@ -474,20 +574,26 @@ function AppContent() {
               </div>
 
               <div className="space-y-4">
-                {buyerNotifications.map((notif) => (
-                  <div key={notif.id} className={`p-4 border rounded-2xl flex items-start gap-4 transition-all ${
-                    notif.unread 
-                      ? 'bg-brand/5 border-brand/20' 
-                      : 'bg-darkBg-card border-darkBg-border hover:bg-darkBg-hover/30'
-                  }`}>
-                    <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${notif.unread ? 'bg-brand animate-pulse' : 'bg-slate-600'}`}></div>
-                    <div className="flex-1 space-y-1">
-                      <h4 className="text-xs font-bold text-white">{notif.title}</h4>
-                      <p className="text-xs text-slate-400 leading-relaxed">{notif.desc}</p>
-                      <span className="text-[10px] text-slate-500 block">{notif.time}</span>
-                    </div>
+                {buyerNotifications.length === 0 ? (
+                  <div className="py-12 text-center text-slate-500 text-xs bg-darkBg-card border border-darkBg-border rounded-2xl">
+                    No notifications yet.
                   </div>
-                ))}
+                ) : (
+                  buyerNotifications.map((notif) => (
+                    <div key={notif.id} className={`p-4 border rounded-2xl flex items-start gap-4 transition-all ${
+                      notif.unread 
+                        ? 'bg-brand/5 border-brand/20' 
+                        : 'bg-darkBg-card border-darkBg-border hover:bg-darkBg-hover/30'
+                    }`}>
+                      <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${notif.unread ? 'bg-brand animate-pulse' : 'bg-slate-600'}`}></div>
+                      <div className="flex-1 space-y-1">
+                        <h4 className="text-xs font-bold text-white">{notif.title}</h4>
+                        <p className="text-xs text-slate-400 leading-relaxed">{notif.desc}</p>
+                        <span className="text-[10px] text-slate-500 block">{notif.time}</span>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           );
@@ -757,6 +863,7 @@ function AppContent() {
               }}
               activeTab={activeTab}
               setActiveTab={setActiveTab}
+              notifications={sellerNotifications}
             />
           );
 
@@ -1130,20 +1237,26 @@ function AppContent() {
               </div>
 
               <div className="space-y-4">
-                {sellerNotifications.map((notif) => (
-                  <div key={notif.id} className={`p-4 border rounded-2xl flex items-start gap-4 transition-all ${
-                    notif.unread 
-                      ? 'bg-brand/5 border-brand/20' 
-                      : 'bg-darkBg-card border-darkBg-border hover:bg-darkBg-hover/30'
-                  }`}>
-                    <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${notif.unread ? 'bg-brand animate-pulse' : 'bg-slate-600'}`}></div>
-                    <div className="flex-1 space-y-1">
-                      <h4 className="text-xs font-bold text-white">{notif.title}</h4>
-                      <p className="text-xs text-slate-400 leading-relaxed">{notif.desc}</p>
-                      <span className="text-[10px] text-slate-500 block">{notif.time}</span>
-                    </div>
+                {sellerNotifications.length === 0 ? (
+                  <div className="py-12 text-center text-slate-500 text-xs bg-darkBg-card border border-darkBg-border rounded-2xl">
+                    No notifications yet.
                   </div>
-                ))}
+                ) : (
+                  sellerNotifications.map((notif) => (
+                    <div key={notif.id} className={`p-4 border rounded-2xl flex items-start gap-4 transition-all ${
+                      notif.unread 
+                        ? 'bg-brand/5 border-brand/20' 
+                        : 'bg-darkBg-card border-darkBg-border hover:bg-darkBg-hover/30'
+                    }`}>
+                      <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${notif.unread ? 'bg-brand animate-pulse' : 'bg-slate-600'}`}></div>
+                      <div className="flex-1 space-y-1">
+                        <h4 className="text-xs font-bold text-white">{notif.title}</h4>
+                        <p className="text-xs text-slate-400 leading-relaxed">{notif.desc}</p>
+                        <span className="text-[10px] text-slate-500 block">{notif.time}</span>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           );
@@ -1229,6 +1342,9 @@ function AppContent() {
     ? buyerNotifications.filter(n => n.unread).length
     : sellerNotifications.filter(n => n.unread).length;
 
+  const displayMessageCount = hasOpenedMessages ? 0 : messageCount;
+  const displayNotificationCount = hasOpenedNotifications ? 0 : notificationCount;
+
   return (
     <div className="min-h-screen bg-darkBg text-white flex font-sans overflow-x-hidden">
       {/* Side Navigation Panel */}
@@ -1236,8 +1352,8 @@ function AppContent() {
         activeTab={activeTab} 
         setActiveTab={(tab) => { setActiveTab(tab); setDefaultChatRecipient(null); setCurrentCompareRequest(null); }} 
         onLogoClick={() => setViewingHomepage(true)}
-        messageCount={messageCount}
-        notificationCount={notificationCount}
+        messageCount={displayMessageCount}
+        notificationCount={displayNotificationCount}
       />
 
       {/* Main Container Shell */}
@@ -1246,8 +1362,8 @@ function AppContent() {
           activeTab={activeTab} 
           setActiveTab={setActiveTab} 
           onReturnToHomepage={() => setViewingHomepage(true)}
-          messageCount={messageCount}
-          notificationCount={notificationCount}
+          messageCount={displayMessageCount}
+          notificationCount={displayNotificationCount}
         />
         
         {/* Dynamic Inner Panel Viewport */}
