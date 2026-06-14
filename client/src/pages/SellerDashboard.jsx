@@ -11,7 +11,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 
-const SellerDashboard = ({ onPlaceBidClick, onViewRequestClick, activeTab, setActiveTab }) => {
+const SellerDashboard = ({ user, onPlaceBidClick, onViewRequestClick, activeTab, setActiveTab }) => {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentCategory, setCurrentCategory] = useState('All Requests');
@@ -70,7 +70,7 @@ const SellerDashboard = ({ onPlaceBidClick, onViewRequestClick, activeTab, setAc
       {/* Header Copy */}
       <div>
         <h2 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-          Welcome back, Arjun! 👋
+          Welcome back, {user?.name || 'Seller'}! 👋
         </h2>
         <p className="text-slate-400 text-sm mt-1">
           Find new opportunities and grow your business.

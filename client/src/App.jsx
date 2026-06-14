@@ -581,6 +581,7 @@ function AppContent() {
         case 'dashboard':
           return (
             <SellerDashboard 
+              user={user}
               onPlaceBidClick={(req) => {
                 setCurrentPlaceBidRequest(req);
                 setIsPlaceBidModalOpen(true);
