@@ -16,8 +16,6 @@ import {
   Zap, 
   Clock, 
   Lock,
-  Moon,
-  Sun,
   Star,
   ExternalLink
 } from 'lucide-react';
@@ -199,9 +197,6 @@ const LandingPage = ({ onLoginClick, user, onGoToDashboard }) => {
           </div>
 
           <div className="flex items-center gap-4">
-            <button className="p-2 rounded-lg bg-darkBg-card hover:bg-darkBg-hover border border-darkBg-border text-slate-300">
-              <Moon className="w-4 h-4" />
-            </button>
             {user ? (
               <>
                 <button 
