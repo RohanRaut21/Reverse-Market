@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import connectDB from './config/db.js';
+import path from 'path';
 
 // Route files
 import authRoutes from './routes/authRoutes.js';
@@ -41,10 +42,20 @@ app.use('/api/bids', bidRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/amazon', amazonRoutes);
 
-// Base route
-app.get('/', (req, res) => {
-  res.send('ReverseMarket API is running...');
-});
+// Serve static assets in production
+if (process.env.NODE_ENV === 'production') {
+  const __dirname = path.resolve();
+  app.use(express.static(path.join(__dirname, 'client/dist')));
+
+  app.get('*', (req, res) =>
+    res.sendFile(path.resolve(__dirname, 'client', 'dist', 'index.html'))
+  );
+} else {
+  // Base route
+  app.get('/', (req, res) => {
+    res.send('ReverseMarket API is running...');
+  });
+}
 
 // Error handling middleware
 app.use((err, req, res, next) => {
