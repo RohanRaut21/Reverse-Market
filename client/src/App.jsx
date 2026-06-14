@@ -33,7 +33,8 @@ import {
   Lock,
   ChevronRight,
   TrendingDown,
-  ExternalLink
+  ExternalLink,
+  ShoppingBag
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -98,7 +99,7 @@ function AppContent() {
     if (user && activeRole === 'Seller') {
       if (activeTab === 'browseRequests') {
         fetchBrowseRequests();
-      } else if (activeTab === 'myBids') {
+      } else if (activeTab === 'myBids' || activeTab === 'acceptedOrders') {
         fetchMyBids();
       }
     }
@@ -982,45 +983,96 @@ function AppContent() {
           // List accepted seller bids
           const wonBids = myBids.filter(b => b.status === 'Accepted');
           return (
-            <div className="p-8 space-y-6 max-w-7xl mx-auto">
+            <div className="p-8 space-y-8 max-w-7xl mx-auto">
               <div>
-                <h2 className="text-2xl font-bold tracking-tight text-white">Accepted Orders (Orders Won)</h2>
-                <p className="text-slate-400 text-sm mt-1">Review contracts currently under execution.</p>
+                <h2 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+                  <ShoppingBag className="w-6 h-6 text-brand" />
+                  Accepted Orders
+                </h2>
+                <p className="text-slate-400 text-sm mt-1">Review contracts and requests you won that are currently under execution.</p>
               </div>
 
-              <div className="bg-darkBg-card border border-darkBg-border rounded-3xl p-6 shadow-xl">
-                {wonBids.length === 0 ? (
-                  <div className="py-12 text-center text-slate-500 text-xs">No won orders yet. Keep bidding to win orders!</div>
-                ) : (
-                  <div className="divide-y divide-darkBg-border text-xs">
-                    {wonBids.map((bid) => {
-                      const req = bid.request;
-                      if (!req) return null;
-                      return (
-                        <div key={bid._id} className="py-4 flex justify-between items-center">
-                          <div>
-                            <h4 className="font-bold text-white text-sm">{req.title}</h4>
-                            <span className="text-slate-400 font-medium block">Category: {req.category} • Client: {req.buyer?.name}</span>
-                            <span className="text-[10px] text-slate-500 block mt-0.5">Agreement Price: ₹{bid.bidAmount} • Timeline: {bid.deliveryTime} Days</span>
+              {myBidsLoading ? (
+                <div className="bg-darkBg-card border border-darkBg-border p-12 rounded-3xl text-center text-slate-500 text-xs flex flex-col items-center gap-3">
+                  <div className="w-8 h-8 border-4 border-brand border-t-transparent rounded-full animate-spin"></div>
+                  <span>Loading accepted orders...</span>
+                </div>
+              ) : wonBids.length === 0 ? (
+                <div className="bg-darkBg-card border border-darkBg-border p-12 rounded-3xl text-center text-slate-500 text-xs flex flex-col items-center gap-3">
+                  <ShoppingBag className="w-10 h-10 text-slate-600" />
+                  <span>No won orders yet. Keep bidding and competing on active requests to win contracts!</span>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {wonBids.map((bid) => {
+                    const req = bid.request;
+                    if (!req) return null;
+                    return (
+                      <div 
+                        key={bid._id} 
+                        className="bg-darkBg-card border border-darkBg-border hover:border-brand/40 rounded-3xl p-6 shadow-xl flex flex-col justify-between hover:scale-[1.02] transition-all duration-300 group relative overflow-hidden"
+                      >
+                        {/* Top Decorative bar */}
+                        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-500"></div>
+
+                        <div className="space-y-4">
+                          <div className="flex justify-between items-start">
+                            <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">
+                              Active Order
+                            </span>
+                            <span className="text-[11px] text-slate-500 font-semibold flex items-center gap-1">
+                              <Calendar className="w-3.5 h-3.5" />
+                              {new Date(bid.createdAt).toLocaleDateString()}
+                            </span>
                           </div>
-                          
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => {
-                                setDefaultChatRecipient(req.buyer);
-                                setActiveTab('messages');
-                              }}
-                              className="px-3.5 py-2 bg-brand/10 hover:bg-brand/20 border border-brand/20 text-brand text-xs font-bold rounded-xl flex items-center gap-1"
-                            >
-                              <MessageSquare className="w-4 h-4" /> Open Chat
-                            </button>
+
+                          <div>
+                            <h4 className="font-bold text-white text-base group-hover:text-brand transition-colors line-clamp-1">{req.title}</h4>
+                            <p className="text-xs text-slate-400 mt-1 line-clamp-2">{req.description}</p>
+                          </div>
+
+                          {/* Client details card */}
+                          <div className="flex items-center gap-3 bg-[#0b0d19] p-3 rounded-2xl border border-darkBg-border/50">
+                            <img 
+                              src={req.buyer?.profileImage || `https://api.dicebear.com/7.x/initials/svg?seed=${req.buyer?.name}`} 
+                              alt={req.buyer?.name} 
+                              className="w-8 h-8 rounded-lg object-cover ring-2 ring-brand/10"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <span className="text-xs font-bold text-white block truncate">{req.buyer?.name}</span>
+                              <span className="text-[10px] text-slate-500 block truncate">{req.buyer?.email}</span>
+                            </div>
+                          </div>
+
+                          {/* Order Details Grid */}
+                          <div className="grid grid-cols-2 gap-4 pt-2 border-t border-darkBg-border/40 text-xs">
+                            <div>
+                              <span className="text-slate-500 font-semibold block">Deal Price</span>
+                              <span className="text-white font-extrabold text-sm block mt-0.5">₹{bid.bidAmount.toLocaleString()}</span>
+                            </div>
+                            <div>
+                              <span className="text-slate-500 font-semibold block">Delivery</span>
+                              <span className="text-white font-extrabold text-sm block mt-0.5">{bid.deliveryTime} Days</span>
+                            </div>
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
+
+                        <div className="pt-6 mt-4 border-t border-darkBg-border/40 flex items-center gap-2">
+                          <button
+                            onClick={() => {
+                              setDefaultChatRecipient(req.buyer);
+                              setActiveTab('messages');
+                            }}
+                            className="flex-1 py-2.5 bg-brand/10 hover:bg-brand text-brand hover:text-white border border-brand/20 hover:border-brand text-xs font-bold rounded-2xl flex items-center justify-center gap-1.5 transition-all"
+                          >
+                            <MessageSquare className="w-4 h-4" /> Message Client
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           );
 
