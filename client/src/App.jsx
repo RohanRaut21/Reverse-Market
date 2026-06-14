@@ -75,6 +75,22 @@ function AppContent() {
   const [buyerRequests, setBuyerRequests] = useState([]);
   const [buyerRequestsLoading, setBuyerRequestsLoading] = useState(false);
 
+  // Message & Notification count states
+  const [messageCount, setMessageCount] = useState(0);
+  const [buyerNotifications, setBuyerNotifications] = useState([
+    { id: 1, title: "New bid received on 'Wireless Headphones'", desc: "TechWorld India placed a bid of ₹9,800 with 3 days delivery timeline.", time: "2m ago", unread: true },
+    { id: 2, title: "Seller replied to your message", desc: "Arjun Verma: 'Hi Rohan, I have placed a bid on your wireless headphones...'", time: "1h ago", unread: true },
+    { id: 3, title: "Request deadline closed", desc: "Bidding is closed for your request 'Gaming Laptop' as it reached its deadline.", time: "2h ago", unread: false },
+    { id: 4, title: "You accepted a bid", desc: "You accepted Shree Traders' bid of ₹48,000 for 'Interior Design for 2BHK'.", time: "1 day ago", unread: false },
+    { id: 5, title: "Deadline warning", desc: "Deadline approaching for 'Ergonomic Office Chair' - 3 days left.", time: "3 days ago", unread: false }
+  ]);
+  const [sellerNotifications, setSellerNotifications] = useState([
+    { id: 1, title: "Your bid was shortlisted!", desc: "Rohan Sharma shortlisted your bid of ₹72,000 for 'Gaming Laptop'. Details being reviewed.", time: "10 May 2026", unread: true },
+    { id: 2, title: "Bid Accepted! Contract Created!", desc: "Shree Traders accepted your bid of ₹48,000 for 'Interior Design'. Escrow holding initialized.", time: "15 May 2026", unread: true },
+    { id: 3, title: "New Request posted in Electronics", desc: "A buyer has requested 'Office Workstation setup' with a budget of ₹45,000.", time: "20 May 2026", unread: false },
+    { id: 4, title: "Outbid notification", desc: "Your bid for 'Wireless Headphones' was outbid by Shree Traders.", time: "25 May 2026", unread: false }
+  ]);
+
   // Sync settings inputs when user data loads
   useEffect(() => {
     if (user) {
@@ -111,6 +127,25 @@ function AppContent() {
       fetchBuyerRequests();
     }
   }, [user, activeRole, activeTab]);
+
+  // Fetch active conversations count for badges
+  const fetchConversationsCount = async () => {
+    try {
+      const res = await fetch('/api/messages/conversations');
+      const data = await res.json();
+      if (data.success) {
+        setMessageCount(data.data.length);
+      }
+    } catch (err) {
+      console.error('Error fetching conversations count:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      fetchConversationsCount();
+    }
+  }, [user, activeTab]);
 
   const fetchBuyerRequests = async () => {
     try {
@@ -430,18 +465,17 @@ function AppContent() {
                   <h2 className="text-2xl font-bold tracking-tight text-white">Notifications</h2>
                   <p className="text-slate-400 text-sm mt-1">Stay updated with activity on your requests.</p>
                 </div>
-                <button className="text-xs text-brand hover:underline font-semibold">Mark all as read</button>
+                <button 
+                  onClick={() => setBuyerNotifications(buyerNotifications.map(n => ({ ...n, unread: false })))}
+                  className="text-xs text-brand hover:underline font-semibold"
+                >
+                  Mark all as read
+                </button>
               </div>
 
               <div className="space-y-4">
-                {[
-                  { title: "New bid received on 'Wireless Headphones'", desc: "TechWorld India placed a bid of ₹9,800 with 3 days delivery timeline.", time: "2m ago", unread: true },
-                  { title: "Seller replied to your message", desc: "Arjun Verma: 'Hi Rohan, I have placed a bid on your wireless headphones...'", time: "1h ago", unread: true },
-                  { title: "Request deadline closed", desc: "Bidding is closed for your request 'Gaming Laptop' as it reached its deadline.", time: "2h ago", unread: false },
-                  { title: "You accepted a bid", desc: "You accepted Shree Traders' bid of ₹48,000 for 'Interior Design for 2BHK'.", time: "1 day ago", unread: false },
-                  { title: "Deadline warning", desc: "Deadline approaching for 'Ergonomic Office Chair' - 3 days left.", time: "3 days ago", unread: false }
-                ].map((notif, idx) => (
-                  <div key={idx} className={`p-4 border rounded-2xl flex items-start gap-4 transition-all ${
+                {buyerNotifications.map((notif) => (
+                  <div key={notif.id} className={`p-4 border rounded-2xl flex items-start gap-4 transition-all ${
                     notif.unread 
                       ? 'bg-brand/5 border-brand/20' 
                       : 'bg-darkBg-card border-darkBg-border hover:bg-darkBg-hover/30'
@@ -1087,17 +1121,17 @@ function AppContent() {
                   <h2 className="text-2xl font-bold tracking-tight text-white">Notifications Feed</h2>
                   <p className="text-slate-400 text-sm mt-1">Stay updated with feedback from buyers and bid statuses.</p>
                 </div>
-                <button className="text-xs text-brand hover:underline font-semibold">Mark all as read</button>
+                <button 
+                  onClick={() => setSellerNotifications(sellerNotifications.map(n => ({ ...n, unread: false })))}
+                  className="text-xs text-brand hover:underline font-semibold"
+                >
+                  Mark all as read
+                </button>
               </div>
 
               <div className="space-y-4">
-                {[
-                  { title: "Your bid was shortlisted!", desc: "Rohan Sharma shortlisted your bid of ₹72,000 for 'Gaming Laptop'. Details being reviewed.", time: "10 May 2026", unread: true },
-                  { title: "Bid Accepted! Contract Created!", desc: "Shree Traders accepted your bid of ₹48,000 for 'Interior Design'. Escrow holding initialized.", time: "15 May 2026", unread: true },
-                  { title: "New Request posted in Electronics", desc: "A buyer has requested 'Office Workstation setup' with a budget of ₹45,000.", time: "20 May 2026", unread: false },
-                  { title: "Outbid notification", desc: "Your bid for 'Wireless Headphones' was outbid by Shree Traders.", time: "25 May 2026", unread: false }
-                ].map((notif, idx) => (
-                  <div key={idx} className={`p-4 border rounded-2xl flex items-start gap-4 transition-all ${
+                {sellerNotifications.map((notif) => (
+                  <div key={notif.id} className={`p-4 border rounded-2xl flex items-start gap-4 transition-all ${
                     notif.unread 
                       ? 'bg-brand/5 border-brand/20' 
                       : 'bg-darkBg-card border-darkBg-border hover:bg-darkBg-hover/30'
@@ -1191,6 +1225,10 @@ function AppContent() {
     }
   };
 
+  const notificationCount = activeRole === 'Buyer'
+    ? buyerNotifications.filter(n => n.unread).length
+    : sellerNotifications.filter(n => n.unread).length;
+
   return (
     <div className="min-h-screen bg-darkBg text-white flex font-sans overflow-x-hidden">
       {/* Side Navigation Panel */}
@@ -1198,6 +1236,8 @@ function AppContent() {
         activeTab={activeTab} 
         setActiveTab={(tab) => { setActiveTab(tab); setDefaultChatRecipient(null); setCurrentCompareRequest(null); }} 
         onLogoClick={() => setViewingHomepage(true)}
+        messageCount={messageCount}
+        notificationCount={notificationCount}
       />
 
       {/* Main Container Shell */}
@@ -1206,6 +1246,8 @@ function AppContent() {
           activeTab={activeTab} 
           setActiveTab={setActiveTab} 
           onReturnToHomepage={() => setViewingHomepage(true)}
+          messageCount={messageCount}
+          notificationCount={notificationCount}
         />
         
         {/* Dynamic Inner Panel Viewport */}

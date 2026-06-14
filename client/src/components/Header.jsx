@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Bell, MessageSquare, Search, Menu, ChevronDown } from 'lucide-react';
 
-const Header = ({ activeTab, setActiveTab, onReturnToHomepage }) => {
+const Header = ({ activeTab, setActiveTab, onReturnToHomepage, messageCount = 0, notificationCount = 0 }) => {
   const { user, activeRole, toggleActiveRole, logout } = useAuth();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
@@ -52,7 +52,9 @@ const Header = ({ activeTab, setActiveTab, onReturnToHomepage }) => {
             className="w-10 h-10 rounded-xl bg-darkBg-card hover:bg-darkBg-hover border border-darkBg-border flex items-center justify-center text-slate-400 hover:text-white relative transition-all"
           >
             <Bell className="w-5 h-5" />
-            <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-brand"></span>
+            {notificationCount > 0 && (
+              <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-brand"></span>
+            )}
           </button>
 
           {/* Messages */}
@@ -61,7 +63,9 @@ const Header = ({ activeTab, setActiveTab, onReturnToHomepage }) => {
             className="w-10 h-10 rounded-xl bg-darkBg-card hover:bg-darkBg-hover border border-darkBg-border flex items-center justify-center text-slate-400 hover:text-white relative transition-all"
           >
             <MessageSquare className="w-5 h-5" />
-            <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-brand"></span>
+            {messageCount > 0 && (
+              <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-brand"></span>
+            )}
           </button>
         </div>
 

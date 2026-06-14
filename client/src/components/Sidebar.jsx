@@ -18,15 +18,15 @@ import {
   Home
 } from 'lucide-react';
 
-const Sidebar = ({ activeTab, setActiveTab, onLogoClick }) => {
+const Sidebar = ({ activeTab, setActiveTab, onLogoClick, messageCount = 0, notificationCount = 0 }) => {
   const { activeRole, logout, user, toggleActiveRole } = useAuth();
 
   const buyerMenu = [
     { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard },
     { id: 'requests', name: 'My Requests', icon: FileText },
     { id: 'receivedBids', name: 'Received Bids', icon: Gavel },
-    { id: 'messages', name: 'Messages', icon: MessageSquare, badge: 5 },
-    { id: 'notifications', name: 'Notifications', icon: Bell, badge: 3 },
+    { id: 'messages', name: 'Messages', icon: MessageSquare, badge: messageCount },
+    { id: 'notifications', name: 'Notifications', icon: Bell, badge: notificationCount },
     { id: 'savedSellers', name: 'Saved Sellers', icon: Bookmark },
     { id: 'orders', name: 'My Orders', icon: ShoppingBag },
     { id: 'payments', name: 'Payments', icon: CreditCard },
@@ -40,8 +40,8 @@ const Sidebar = ({ activeTab, setActiveTab, onLogoClick }) => {
     { id: 'browseRequests', name: 'Browse Requests', icon: Search },
     { id: 'myBids', name: 'My Bids', icon: Gavel },
     { id: 'acceptedOrders', name: 'Accepted Orders', icon: ShoppingBag },
-    { id: 'messages', name: 'Messages', icon: MessageSquare, badge: 5 },
-    { id: 'notifications', name: 'Notifications', icon: Bell, badge: 3 },
+    { id: 'messages', name: 'Messages', icon: MessageSquare, badge: messageCount },
+    { id: 'notifications', name: 'Notifications', icon: Bell, badge: notificationCount },
     { id: 'settings', name: 'Profile Settings', icon: Settings },
     { id: 'homepage', name: 'Return to Homepage', icon: Home },
   ];
