@@ -165,7 +165,8 @@ export const googleAuth = (req, res) => {
     return res.status(400).send('Google Client ID is not configured in .env file. Please add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.');
   }
 
-  const redirect_uri = `${req.protocol}://${req.get('host')}/api/auth/google/callback`;
+  const protocol = (process.env.NODE_ENV === 'production' || process.env.RENDER === 'true') ? 'https' : req.protocol;
+  const redirect_uri = `${protocol}://${req.get('host')}/api/auth/google/callback`;
   const googleUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${client_id}&redirect_uri=${encodeURIComponent(redirect_uri)}&response_type=code&scope=email%20profile`;
   
   res.redirect(googleUrl);
@@ -184,7 +185,8 @@ export const googleCallback = async (req, res) => {
 
     const client_id = process.env.GOOGLE_CLIENT_ID;
     const client_secret = process.env.GOOGLE_CLIENT_SECRET;
-    const redirect_uri = `${req.protocol}://${req.get('host')}/api/auth/google/callback`;
+    const protocol = (process.env.NODE_ENV === 'production' || process.env.RENDER === 'true') ? 'https' : req.protocol;
+    const redirect_uri = `${protocol}://${req.get('host')}/api/auth/google/callback`;
 
     // 1. Exchange authorization code for tokens
     const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
@@ -248,7 +250,12 @@ export const googleCallback = async (req, res) => {
     res.cookie('token', token, cookieOptions);
     
     // Redirect to the client's home/dashboard url
-    const clientRedirectUrl = process.env.CLIENT_REDIRECT_URL || 'http://localhost:5173';
+    let clientRedirectUrl = process.env.CLIENT_REDIRECT_URL;
+    if (!clientRedirectUrl) {
+      clientRedirectUrl = (process.env.NODE_ENV === 'production' || process.env.RENDER === 'true') 
+        ? `https://${req.get('host')}` 
+        : 'http://localhost:5173';
+    }
     res.redirect(clientRedirectUrl);
 
   } catch (error) {

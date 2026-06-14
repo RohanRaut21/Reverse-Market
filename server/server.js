@@ -21,6 +21,9 @@ connectDB();
 
 const app = express();
 
+// Trust proxy headers (for https protocol behind Render/load balancers)
+app.set('trust proxy', true);
+
 // Body parser
 app.use(express.json());
 
