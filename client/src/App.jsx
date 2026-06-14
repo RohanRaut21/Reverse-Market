@@ -101,6 +101,24 @@ function AppContent() {
     }
   }, [user]);
 
+  // Auto-open create request modal if there is an imported product in localStorage
+  useEffect(() => {
+    if (user) {
+      const stored = localStorage.getItem('reverseMarket_importedProduct');
+      if (stored) {
+        if (activeRole !== 'Buyer') {
+          toggleActiveRole();
+          return;
+        }
+        if (viewingHomepage) {
+          setViewingHomepage(false);
+        }
+        setActiveTab('dashboard');
+        setIsCreateModalOpen(true);
+      }
+    }
+  }, [user, activeRole, viewingHomepage]);
+
   // Load seller browse requests or bids based on tab
   useEffect(() => {
     if (user && activeRole === 'Seller') {
