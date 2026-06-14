@@ -1,0 +1,36 @@
+import mongoose from 'mongoose';
+
+const bidSchema = new mongoose.Schema({
+  request: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Request',
+    required: true,
+  },
+  seller: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+  },
+  bidAmount: {
+    type: Number,
+    required: [true, 'Please specify a bid amount'],
+  },
+  deliveryTime: {
+    type: Number, // Number of days
+    required: [true, 'Please specify delivery time in days'],
+  },
+  proposalMessage: {
+    type: String,
+    required: [true, 'Please add a proposal message'],
+  },
+  status: {
+    type: String,
+    enum: ['Pending', 'Shortlisted', 'Outbid', 'Accepted', 'Withdrawn'],
+    default: 'Pending',
+  }
+}, {
+  timestamps: true,
+});
+
+const Bid = mongoose.model('Bid', bidSchema);
+export default Bid;

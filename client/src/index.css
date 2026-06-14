@@ -1,0 +1,56 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap');
+
+@import "tailwindcss";
+@config "../tailwind.config.js";
+
+@layer base {
+  body {
+    @apply bg-darkBg text-white font-sans antialiased;
+    background-color: #0b0d19;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0b0d19;
+}
+::-webkit-scrollbar-thumb {
+  background: #1f243d;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #5c42ff;
+}
+
+/* Orbit Animation Graphic */
+@keyframes orbit {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.orbit-container {
+  position: relative;
+}
+
+.orbit-circle-1 {
+  animation: orbit 30s linear infinite;
+}
+
+.orbit-circle-2 {
+  animation: orbit 45s linear infinite reverse;
+}
+
+/* Glassmorphism card utility */
+.glass-panel {
+  background: rgba(18, 20, 38, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(92, 66, 255, 0.1);
+}
