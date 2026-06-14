@@ -70,6 +70,10 @@ function AppContent() {
   const [myBidsLoading, setMyBidsLoading] = useState(false);
   const [myBidsFilter, setMyBidsFilter] = useState('All');
 
+  // Buyer requests state (specifically for comparing bids directly)
+  const [buyerRequests, setBuyerRequests] = useState([]);
+  const [buyerRequestsLoading, setBuyerRequestsLoading] = useState(false);
+
   // Sync settings inputs when user data loads
   useEffect(() => {
     if (user) {
@@ -99,6 +103,28 @@ function AppContent() {
       }
     }
   }, [user, activeRole, activeTab, browseCategory]);
+
+  // Load buyer requests when viewing received bids
+  useEffect(() => {
+    if (user && activeRole === 'Buyer' && activeTab === 'receivedBids') {
+      fetchBuyerRequests();
+    }
+  }, [user, activeRole, activeTab]);
+
+  const fetchBuyerRequests = async () => {
+    try {
+      setBuyerRequestsLoading(true);
+      const res = await fetch('/api/requests/my');
+      const data = await res.json();
+      if (data.success) {
+        setBuyerRequests(data.data);
+      }
+    } catch (err) {
+      console.error('Error fetching buyer requests for comparison:', err);
+    } finally {
+      setBuyerRequestsLoading(false);
+    }
+  };
 
   const fetchBrowseRequests = async () => {
     try {
@@ -266,7 +292,6 @@ function AppContent() {
                 request={currentCompareRequest} 
                 onBack={() => {
                   setCurrentCompareRequest(null);
-                  setActiveTab('dashboard');
                 }} 
                 onChatClick={(seller) => {
                   setDefaultChatRecipient(seller);
@@ -275,16 +300,121 @@ function AppContent() {
               />
             );
           }
+
+          const getRemainingDaysApp = (deadlineStr) => {
+            const deadline = new Date(deadlineStr);
+            const today = new Date();
+            const timeDiff = deadline - today;
+            const dayDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
+            if (dayDiff < 0) return 'Deadline passed';
+            if (dayDiff === 0) return 'Today';
+            return `${dayDiff} days left`;
+          };
+
+          const getStatusColorApp = (status) => {
+            switch (status) {
+              case 'Active':
+                return 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+              case 'Bidding Closed':
+                return 'bg-amber-500/10 text-amber-400 border border-amber-500/20';
+              case 'In Progress':
+                return 'bg-blue-500/10 text-blue-400 border border-blue-500/20';
+              case 'Completed':
+                return 'bg-slate-500/10 text-slate-400 border border-slate-500/20';
+              default:
+                return 'bg-slate-500/10 text-slate-400 border border-slate-500/20';
+            }
+          };
+
           return (
             <div className="p-8 space-y-6 max-w-7xl mx-auto">
               <div>
-                <h2 className="text-2xl font-bold tracking-tight text-white">Compare Bids</h2>
-                <p className="text-slate-400 text-sm mt-1">Select an active request to view competing bids side-by-side.</p>
+                <h2 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+                  <Gavel className="w-6 h-6 text-brand" />
+                  Compare Received Bids
+                </h2>
+                <p className="text-slate-400 text-sm mt-1">
+                  Select one of your requests below to view and compare bids submitted by sellers.
+                </p>
               </div>
-              <div className="bg-darkBg-card border border-darkBg-border p-8 rounded-3xl text-center text-slate-500 text-xs flex flex-col items-center gap-3">
-                <Gavel className="w-10 h-10 text-slate-600" />
-                <span>Go to the Dashboard or My Requests tab and click on a request to see the comparative bid matrix.</span>
-              </div>
+
+              {buyerRequestsLoading ? (
+                <div className="bg-darkBg-card border border-darkBg-border p-12 rounded-3xl text-center text-slate-500 text-xs flex flex-col items-center gap-3">
+                  <div className="w-8 h-8 border-4 border-brand border-t-transparent rounded-full animate-spin"></div>
+                  <span>Loading your requests...</span>
+                </div>
+              ) : buyerRequests.length === 0 ? (
+                <div className="bg-darkBg-card border border-darkBg-border p-12 rounded-3xl text-center text-slate-500 text-xs flex flex-col items-center gap-3">
+                  <Gavel className="w-10 h-10 text-slate-600" />
+                  <span>You have not posted any requests yet. Create a request on the Dashboard to start receiving bids!</span>
+                </div>
+              ) : (
+                <div className="bg-darkBg-card border border-darkBg-border rounded-3xl p-6 shadow-xl space-y-4">
+                  <div className="divide-y divide-darkBg-border">
+                    {buyerRequests.map((req) => (
+                      <div 
+                        key={req._id}
+                        onClick={() => setCurrentCompareRequest(req)}
+                        className="py-5 flex flex-col sm:flex-row sm:items-center justify-between hover:bg-darkBg-hover/30 px-3 -mx-3 rounded-2xl cursor-pointer transition-all duration-200 group gap-4"
+                      >
+                        <div className="flex items-center gap-4">
+                          <img 
+                            src={req.images?.[0] || 'https://images.unsplash.com/photo-1546868871-7041f2a55e12?q=80&w=100'} 
+                            alt={req.title} 
+                            className="w-14 h-14 rounded-xl object-cover border border-darkBg-border flex-shrink-0"
+                          />
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <h4 className="text-sm font-bold text-white group-hover:text-brand transition-colors">
+                                {req.title}
+                              </h4>
+                              {req.featured && (
+                                <span className="text-[9px] bg-brand/10 text-brand px-1.5 py-0.5 rounded font-bold uppercase">
+                                  Featured
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-slate-400 font-medium">
+                              {req.category} • Budget: <strong className="text-white font-semibold">₹{req.budget.toLocaleString()}</strong>
+                            </p>
+                            <p className="text-[11px] text-slate-500 flex items-center gap-1">
+                              <Clock className="w-3.5 h-3.5" />
+                              <span>Deadline: {new Date(req.deadline).toLocaleDateString()}</span>
+                              <span className="text-brand font-semibold ml-1">({getRemainingDaysApp(req.deadline)})</span>
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between sm:justify-end gap-6 self-stretch sm:self-auto">
+                          <div className="text-left sm:text-right">
+                            <span className={`text-xs px-2.5 py-1 rounded-full font-bold inline-block sm:hidden ${getStatusColorApp(req.status)} mb-2`}>
+                              {req.status}
+                            </span>
+                            <div className="flex items-center gap-2 sm:block">
+                              <span className="text-sm font-extrabold text-white block">
+                                {req.bidCount || 0}
+                              </span>
+                              <span className="text-[10px] text-slate-500 block">
+                                {req.status === 'In Progress' || req.status === 'Completed' ? 'Accepted Bid' : 'Bids Received'}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-3">
+                            <span className={`hidden sm:inline-block text-[11px] px-2.5 py-1 rounded-full font-bold ${getStatusColorApp(req.status)}`}>
+                              {req.status}
+                            </span>
+                            <button className="text-xs font-bold text-brand bg-brand/10 hover:bg-brand hover:text-white px-4 py-2 rounded-xl transition-all flex items-center gap-1">
+                              Compare
+                              <ChevronRight className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           );
 
