@@ -42,8 +42,8 @@ app.use('/api/bids', bidRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/amazon', amazonRoutes);
 
-// Serve static assets in production
-if (process.env.NODE_ENV === 'production') {
+// Serve static assets in production or on Render
+if (process.env.NODE_ENV === 'production' || process.env.RENDER === 'true') {
   const __dirname = path.resolve();
   app.use(express.static(path.join(__dirname, 'client/dist')));
 
