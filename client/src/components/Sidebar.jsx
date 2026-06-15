@@ -27,7 +27,6 @@ const Sidebar = ({ activeTab, setActiveTab, onLogoClick, messageCount = 0, notif
     { id: 'receivedBids', name: 'Received Bids', icon: Gavel },
     { id: 'messages', name: 'Messages', icon: MessageSquare, badge: messageCount },
     { id: 'notifications', name: 'Notifications', icon: Bell, badge: notificationCount },
-    { id: 'savedSellers', name: 'Saved Sellers', icon: Bookmark },
     { id: 'orders', name: 'My Orders', icon: ShoppingBag },
     { id: 'payments', name: 'Payments', icon: CreditCard },
     { id: 'reviews', name: 'Reviews', icon: Star },

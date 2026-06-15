@@ -616,53 +616,6 @@ function AppContent() {
             </div>
           );
 
-        case 'savedSellers':
-          return (
-            <div className="p-8 space-y-6 max-w-7xl mx-auto">
-              <div>
-                <h2 className="text-2xl font-bold tracking-tight text-white">Saved Sellers</h2>
-                <p className="text-slate-400 text-sm mt-1">Your bookmarked and preferred partners.</p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {[
-                  { name: "TechWorld India", business: "TechWorld Solutions", rating: 4.8, jobs: 42, image: "https://api.dicebear.com/7.x/initials/svg?seed=TechWorld" },
-                  { name: "Apex Electronics", business: "Apex Electronics Ltd", rating: 4.9, jobs: 18, image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=200" },
-                  { name: "FashionHub Corporate", business: "FashionHub Fabrics", rating: 4.7, jobs: 85, image: "https://api.dicebear.com/7.x/initials/svg?seed=FashionHub" }
-                ].map((seller, idx) => (
-                  <div key={idx} className="bg-darkBg-card border border-darkBg-border p-6 rounded-2xl space-y-4 hover:border-brand/30 transition-all flex flex-col justify-between">
-                    <div className="flex items-center gap-3">
-                      <img src={seller.image} alt={seller.name} className="w-12 h-12 rounded-xl object-cover border border-darkBg-border" />
-                      <div>
-                        <h4 className="text-sm font-bold text-white">{seller.business}</h4>
-                        <span className="text-xs text-slate-400">{seller.name}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="flex justify-between items-center text-xs border-t border-darkBg-border/40 pt-3 text-slate-400">
-                      <span className="flex items-center gap-0.5"><Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" /> {seller.rating}</span>
-                      <span>{seller.jobs} Jobs Completed</span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2 pt-1">
-                      <button 
-                        onClick={() => {
-                          setDefaultChatRecipient({ _id: 'mockSeller' + idx, name: seller.name, businessName: seller.business, role: 'Seller', rating: seller.rating });
-                          setActiveTab('messages');
-                        }}
-                        className="py-2 bg-darkBg hover:bg-darkBg-hover border border-darkBg-border text-slate-300 font-semibold rounded-xl text-xs flex items-center justify-center gap-1.5"
-                      >
-                        <MessageSquare className="w-3.5 h-3.5" /> Chat
-                      </button>
-                      <button className="py-2 bg-brand/10 hover:bg-brand/20 text-brand font-bold rounded-xl text-xs">
-                        Invite to Bid
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          );
 
         case 'orders':
           return (
