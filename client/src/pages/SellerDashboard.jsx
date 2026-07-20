@@ -24,24 +24,88 @@ const SellerDashboard = ({
   const [loading, setLoading] = useState(true);
   const [currentCategory, setCurrentCategory] = useState("All Requests");
   const [stats, setStats] = useState({
-    totalBids: 24,
-    inProgress: 7,
-    ordersWon: 5,
-    completedOrders: 18,
+    totalBids: 0,
+    inProgress: 0,
+    ordersWon: 0,
+    completedOrders: 0,
+    totalContractValue: 0,
+    shortlistedCount: 0
   });
 
   const [bidsSummary, setBidsSummary] = useState({
-    all: 24,
-    inProgress: 7,
-    shortlisted: 4,
-    outbid: 8,
-    withdrawn: 2,
-    accepted: 5,
+    all: 0,
+    inProgress: 0,
+    shortlisted: 0,
+    outbid: 0,
+    withdrawn: 0,
+    accepted: 0,
   });
 
   useEffect(() => {
     fetchAvailableRequests();
+    fetchSellerBidsAndStats();
   }, [currentCategory]);
+
+  const fetchSellerBidsAndStats = async () => {
+    try {
+      const res = await fetch('/api/bids/my');
+      const data = await res.json();
+      if (data.success) {
+        const myBids = data.data || [];
+        
+        let totalBids = myBids.length;
+        let inProgressBids = 0;
+        let ordersWon = 0;
+        let completedOrders = 0;
+        let totalContractValue = 0;
+        let shortlistedCount = 0;
+        let outbidCount = 0;
+        let withdrawnCount = 0;
+
+        myBids.forEach(bid => {
+          if (bid.status === 'Pending' || bid.status === 'Shortlisted') {
+            inProgressBids++;
+          }
+          if (bid.status === 'Shortlisted') {
+            shortlistedCount++;
+          }
+          if (bid.status === 'Accepted') {
+            ordersWon++;
+            totalContractValue += bid.bidAmount || 0;
+          }
+          if (bid.status === 'Outbid') {
+            outbidCount++;
+          }
+          if (bid.status === 'Withdrawn') {
+            withdrawnCount++;
+          }
+          if (bid.status === 'Completed' || bid.request?.status === 'Completed') {
+            completedOrders++;
+          }
+        });
+
+        setStats({
+          totalBids,
+          inProgress: inProgressBids,
+          ordersWon,
+          completedOrders,
+          totalContractValue,
+          shortlistedCount
+        });
+
+        setBidsSummary({
+          all: totalBids,
+          inProgress: inProgressBids,
+          shortlisted: shortlistedCount,
+          outbid: outbidCount,
+          withdrawn: withdrawnCount,
+          accepted: ordersWon,
+        });
+      }
+    } catch (err) {
+      console.error('Error fetching seller stats:', err);
+    }
+  };
 
   const fetchAvailableRequests = async () => {
     try {
@@ -81,7 +145,7 @@ const SellerDashboard = ({
       {/* Header Copy */}
       <div>
         <h2 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-          Welcome back, {"Seller"}! 👋
+          Welcome back, {user?.name || "Seller"}! 👋
         </h2>
         <p className="text-slate-400 text-sm mt-1">
           Find new opportunities and grow your business.
@@ -100,7 +164,7 @@ const SellerDashboard = ({
               {stats.totalBids}
             </span>
             <span className="text-[11px] text-emerald-400 font-semibold block">
-              • 6 new this week
+              • {stats.totalBids === 0 ? 'No bids placed' : `${stats.totalBids} proposal${stats.totalBids === 1 ? '' : 's'} submitted`}
             </span>
           </div>
           <div className="w-12 h-12 rounded-xl bg-brand/10 flex items-center justify-center text-brand">
@@ -117,8 +181,8 @@ const SellerDashboard = ({
             <span className="text-3xl font-extrabold text-white block">
               {stats.inProgress}
             </span>
-            <span className="text-[11px] text-brand-blue font-semibold block">
-              • 2 awaiting response
+            <span className="text-[11px] text-blue-400 font-semibold block">
+              • {stats.shortlistedCount > 0 ? `${stats.shortlistedCount} shortlisted` : stats.inProgress === 0 ? 'No pending bids' : `${stats.inProgress} active quote${stats.inProgress === 1 ? '' : 's'}`}
             </span>
           </div>
           <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400">
@@ -135,8 +199,8 @@ const SellerDashboard = ({
             <span className="text-3xl font-extrabold text-white block">
               {stats.ordersWon}
             </span>
-            <span className="text-[11px] text-emerald-400 font-semibold block">
-              • 3 this month
+            <span className="text-[11px] text-purple-400 font-semibold block">
+              • {stats.ordersWon === 0 ? 'No contracts won yet' : `Worth ₹${stats.totalContractValue.toLocaleString()}`}
             </span>
           </div>
           <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center text-brand-purple">
@@ -154,7 +218,7 @@ const SellerDashboard = ({
               {stats.completedOrders}
             </span>
             <span className="text-[11px] text-emerald-400 font-semibold block">
-              • 12 this month
+              • {stats.completedOrders === 0 ? 'No completed projects' : `${stats.completedOrders} fulfilled contract${stats.completedOrders === 1 ? '' : 's'}`}
             </span>
           </div>
           <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">

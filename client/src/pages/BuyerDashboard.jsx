@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
 import { 
   FileText, 
   Gavel, 
@@ -20,6 +21,7 @@ const chartData = [
 ];
 
 const BuyerDashboard = ({ onCreateRequestClick, onRequestClick, activeTab, setActiveTab, notifications = [] }) => {
+  const { user } = useAuth();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentFilter, setCurrentFilter] = useState('All');
@@ -27,7 +29,8 @@ const BuyerDashboard = ({ onCreateRequestClick, onRequestClick, activeTab, setAc
     active: 0,
     totalBids: 0,
     inProgress: 0,
-    completed: 0
+    completed: 0,
+    inProgressValue: 0
   });
 
   useEffect(() => {
@@ -50,19 +53,24 @@ const BuyerDashboard = ({ onCreateRequestClick, onRequestClick, activeTab, setAc
         let active = 0;
         let inProgress = 0;
         let completed = 0;
+        let inProgressValue = 0;
 
         for (const req of myRequests) {
           totalBids += req.bidCount || 0;
           if (req.status === 'Active') active++;
-          else if (req.status === 'In Progress') inProgress++;
+          else if (req.status === 'In Progress') {
+            inProgress++;
+            inProgressValue += req.budget || 0;
+          }
           else if (req.status === 'Completed') completed++;
         }
 
         setStats({
-          active: active || 8, // Fallback to mockup data if empty
-          totalBids: totalBids || 32,
-          inProgress: inProgress || 3,
-          completed: completed || 15
+          active,
+          totalBids,
+          inProgress,
+          completed,
+          inProgressValue
         });
       }
     } catch (err) {
@@ -109,7 +117,7 @@ const BuyerDashboard = ({ onCreateRequestClick, onRequestClick, activeTab, setAc
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-            Welcome back, Rohan! 👋
+            Welcome back, {user?.name || 'Buyer'}! 👋
           </h2>
           <p className="text-slate-400 text-sm mt-1">
             Post your requirements and let verified sellers compete for your business.
@@ -131,7 +139,7 @@ const BuyerDashboard = ({ onCreateRequestClick, onRequestClick, activeTab, setAc
           <div className="space-y-2">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">Active Requests</span>
             <span className="text-3xl font-extrabold text-white block">{stats.active}</span>
-            <span className="text-[11px] text-emerald-400 font-semibold block">• 2 new bids today</span>
+            <span className="text-[11px] text-emerald-400 font-semibold block">• {stats.active === 0 ? 'No active postings' : `${stats.active} open for bidding`}</span>
           </div>
           <div className="w-12 h-12 rounded-xl bg-brand/10 flex items-center justify-center text-brand">
             <FileText className="w-6 h-6" />
@@ -143,7 +151,7 @@ const BuyerDashboard = ({ onCreateRequestClick, onRequestClick, activeTab, setAc
           <div className="space-y-2">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">Total Bids Received</span>
             <span className="text-3xl font-extrabold text-white block">{stats.totalBids}</span>
-            <span className="text-[11px] text-emerald-400 font-semibold block">+12 this week</span>
+            <span className="text-[11px] text-blue-400 font-semibold block">{requests.length === 0 ? 'No bids yet' : `Across ${requests.length} request${requests.length === 1 ? '' : 's'}`}</span>
           </div>
           <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400">
             <Gavel className="w-6 h-6" />
@@ -155,7 +163,7 @@ const BuyerDashboard = ({ onCreateRequestClick, onRequestClick, activeTab, setAc
           <div className="space-y-2">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">Orders In Progress</span>
             <span className="text-3xl font-extrabold text-white block">{stats.inProgress}</span>
-            <span className="text-[11px] text-brand-purple font-semibold block">Worth ₹24,500</span>
+            <span className="text-[11px] text-purple-400 font-semibold block">{stats.inProgress === 0 ? 'No active orders' : `Worth ₹${(stats.inProgressValue || 0).toLocaleString()}`}</span>
           </div>
           <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center text-brand-purple">
             <ShoppingBag className="w-6 h-6" />
@@ -167,7 +175,7 @@ const BuyerDashboard = ({ onCreateRequestClick, onRequestClick, activeTab, setAc
           <div className="space-y-2">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">Completed Orders</span>
             <span className="text-3xl font-extrabold text-white block">{stats.completed}</span>
-            <span className="text-[11px] text-emerald-400 font-semibold block">+3 this month</span>
+            <span className="text-[11px] text-emerald-400 font-semibold block">{stats.completed === 0 ? 'No completed orders' : `${stats.completed} fulfilled successfully`}</span>
           </div>
           <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
             <CheckCircle2 className="w-6 h-6" />
