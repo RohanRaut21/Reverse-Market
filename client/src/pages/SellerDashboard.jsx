@@ -399,12 +399,12 @@ const SellerDashboard = ({
           <div className="bg-darkBg-card border border-darkBg-border rounded-3xl p-6 shadow-xl space-y-4">
             <div className="flex justify-between items-center">
               <h3 className="text-sm font-bold text-white">My Bids Summary</h3>
-              <a
-                href="#"
+              <button
+                onClick={() => setActiveTab('myBids')}
                 className="text-[10px] text-brand hover:underline font-semibold"
               >
                 View All
-              </a>
+              </button>
             </div>
 
             <div className="divide-y divide-darkBg-border text-xs">

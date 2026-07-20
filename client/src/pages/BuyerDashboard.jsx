@@ -283,50 +283,10 @@ const BuyerDashboard = ({ onCreateRequestClick, onRequestClick, activeTab, setAc
 
         {/* Right Side: Activity Log, Notifications & Chart */}
         <div className="lg:col-span-4 space-y-6">
-          {/* Recent Activity */}
+          {/* Recent Activity Feed */}
           <div className="bg-darkBg-card border border-darkBg-border rounded-3xl p-6 shadow-xl space-y-4">
             <div className="flex justify-between items-center">
               <h3 className="text-sm font-bold text-white">Recent Activity</h3>
-              <a href="#" className="text-[10px] text-brand hover:underline font-semibold">View All</a>
-            </div>
-            
-            <div className="space-y-4 text-xs">
-              <div className="flex gap-3">
-                <div className="w-7 h-7 rounded-full bg-brand/10 text-brand flex items-center justify-center flex-shrink-0">
-                  <Gavel className="w-3.5 h-3.5" />
-                </div>
-                <div>
-                  <p className="text-slate-300">New bid received on <strong>"Wireless Headphones"</strong> by TechWorld India</p>
-                  <span className="text-[10px] text-slate-500 mt-0.5 block">2m ago</span>
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <div className="w-7 h-7 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center flex-shrink-0">
-                  <Clock className="w-3.5 h-3.5" />
-                </div>
-                <div>
-                  <p className="text-slate-300">Your request <strong>"Gaming Laptop"</strong> is now bidding closed</p>
-                  <span className="text-[10px] text-slate-500 mt-0.5 block">1h ago</span>
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <div className="w-7 h-7 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center flex-shrink-0">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                </div>
-                <div>
-                  <p className="text-slate-300">You accepted a bid for <strong>"Bulk T-Shirts"</strong> from FashionHub</p>
-                  <span className="text-[10px] text-slate-500 mt-0.5 block">2h ago</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Quick Notifications Feed */}
-          <div className="bg-darkBg-card border border-darkBg-border rounded-3xl p-6 shadow-xl space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="text-sm font-bold text-white">Notifications</h3>
               <button 
                 onClick={() => setActiveTab('notifications')}
                 className="text-[10px] text-brand hover:underline font-semibold"
@@ -334,21 +294,60 @@ const BuyerDashboard = ({ onCreateRequestClick, onRequestClick, activeTab, setAc
                 View All
               </button>
             </div>
-
+            
             <div className="space-y-4 text-xs">
               {notifications.length === 0 ? (
-                <div className="py-4 text-center text-slate-500 text-[11px]">No notifications yet.</div>
+                <div className="py-4 text-center text-slate-500 text-[11px]">No activity yet.</div>
               ) : (
-                notifications.slice(0, 3).map((notif) => (
+                notifications.slice(0, 4).map((notif) => (
                   <div key={notif.id} className="flex gap-3 items-start">
-                    <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${notif.unread ? 'bg-brand' : 'bg-slate-600'}`}></div>
-                    <div>
-                      <h5 className="font-bold text-white">{notif.title}</h5>
-                      <p className="text-slate-400 text-[11px] mt-0.5">{notif.desc}</p>
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${notif.unread ? 'bg-brand/10 text-brand' : 'bg-slate-500/10 text-slate-400'}`}>
+                      <Gavel className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-slate-300 font-medium leading-relaxed pr-2">
+                        {notif.title}
+                      </p>
+                      <span className="text-[10px] text-slate-500 mt-0.5 block">
+                        {notif.time}
+                      </span>
                     </div>
                   </div>
                 ))
               )}
+            </div>
+          </div>
+
+          {/* Requests Breakdown Summary */}
+          <div className="bg-darkBg-card border border-darkBg-border rounded-3xl p-6 shadow-xl space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-sm font-bold text-white">Requests Summary</h3>
+              <button 
+                onClick={() => setActiveTab('requests')}
+                className="text-[10px] text-brand hover:underline font-semibold"
+              >
+                View All
+              </button>
+            </div>
+
+            <div className="divide-y divide-darkBg-border text-xs">
+              {[
+                { label: 'Active Postings', count: stats.active, color: 'bg-emerald-500/20 text-emerald-400' },
+                { label: 'In Progress', count: stats.inProgress, color: 'bg-blue-500/20 text-blue-400' },
+                { label: 'Completed Orders', count: stats.completed, color: 'bg-purple-500/20 text-purple-400' },
+                { label: 'Total Bids Received', count: stats.totalBids, color: 'bg-brand/20 text-brand' },
+              ].map((item, idx) => (
+                <div
+                  key={idx}
+                  className="flex justify-between items-center py-2.5 first:pt-0 last:pb-0 cursor-pointer group hover:bg-darkBg-hover/30 px-1.5 -mx-1.5 rounded-lg transition-all"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className={`w-2 h-2 rounded-full ${item.color.split(' ')[1]}`}></span>
+                    <span className="text-slate-300 group-hover:text-white transition-colors">{item.label}</span>
+                  </div>
+                  <span className="font-bold text-white">{item.count}</span>
+                </div>
+              ))}
             </div>
           </div>
 
