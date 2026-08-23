@@ -156,6 +156,48 @@ const determineCategory = (title = '', query = '') => {
   return 'Electronics';
 };
 
+// Robust utility to extract string price and parse numeric value from SerpApi responses
+const extractPrice = (sourceObj) => {
+  if (!sourceObj) return { raw: '₹0', value: 0 };
+
+  // If sourceObj is a string (e.g. "₹14,999.00" or "$29.99")
+  if (typeof sourceObj === 'string') {
+    const raw = sourceObj.trim();
+    // Keep digits and decimal points
+    const cleanStr = raw.replace(/[^\d.]/g, '');
+    const value = parseFloat(cleanStr) || 0;
+    return { raw, value };
+  }
+
+  // If sourceObj is a number (e.g. 14999)
+  if (typeof sourceObj === 'number') {
+    return { raw: `₹${sourceObj.toLocaleString()}`, value: sourceObj };
+  }
+
+  // If sourceObj is an object (e.g. { raw: "₹14,999.00", value: 14999 })
+  if (typeof sourceObj === 'object') {
+    const raw = sourceObj.raw || sourceObj.price || '';
+    const val = sourceObj.value !== undefined 
+      ? sourceObj.value 
+      : (sourceObj.extracted_value !== undefined ? sourceObj.extracted_value : null);
+
+    if (val !== null) {
+      return { 
+        raw: raw || `₹${val.toLocaleString()}`, 
+        value: val 
+      };
+    }
+
+    if (raw) {
+      const cleanStr = String(raw).replace(/[^\d.]/g, '');
+      const value = parseFloat(cleanStr) || 0;
+      return { raw, value };
+    }
+  }
+
+  return { raw: '₹0', value: 0 };
+};
+
 export const searchAmazonProducts = async (req, res, next) => {
   try {
     const { q } = req.query;
@@ -189,25 +231,34 @@ export const searchAmazonProducts = async (req, res, next) => {
 
     // Map SerpApi results to our schema (limit to 4 for clean landing page grid representation)
     const items = data.organic_results.slice(0, 4).map((item, idx) => {
-      // Determine numeric price
+      // Determine numeric price using robust candidates check
       let priceStr = '₹0';
       let numericPriceVal = 0;
-      if (item.price) {
-        if (typeof item.price === 'string') {
-          priceStr = item.price;
-          numericPriceVal = Number(item.price.replace(/[^\d]/g, ''));
-        } else if (typeof item.price === 'object') {
-          priceStr = item.price.raw || `₹${item.price.extracted_value?.toLocaleString() || '0'}`;
-          numericPriceVal = item.price.extracted_value || 0;
+
+      const priceCandidates = [
+        item.price,
+        item.extracted_price
+      ];
+
+      for (const candidate of priceCandidates) {
+        if (candidate !== undefined && candidate !== null) {
+          const extracted = extractPrice(candidate);
+          if (extracted.value > 0) {
+            priceStr = extracted.raw;
+            numericPriceVal = extracted.value;
+            break;
+          } else if (extracted.raw && extracted.raw !== '₹0' && priceStr === '₹0') {
+            priceStr = extracted.raw;
+            numericPriceVal = extracted.value;
+          }
         }
       }
 
       // Generate realistic original price if not present (usually 15-25% discount markup)
       let originalPriceStr = '';
       if (item.original_price) {
-        originalPriceStr = typeof item.original_price === 'string' 
-          ? item.original_price 
-          : item.original_price.raw || `₹${item.original_price.extracted_value?.toLocaleString() || '0'}`;
+        const extractedOrig = extractPrice(item.original_price);
+        originalPriceStr = extractedOrig.raw;
       } else if (numericPriceVal > 0) {
         const markup = Math.round(numericPriceVal * 1.22);
         originalPriceStr = `₹${markup.toLocaleString()}`;
@@ -402,13 +453,63 @@ export const getProductDetails = async (req, res, next) => {
       productImages = product.media.map(m => m.link);
     }
 
+    // Robust price extraction for product details page
+    let rawPrice = '₹0';
+    let numericPrice = 0;
+
+    const detailsPriceCandidates = [
+      product.price,
+      product.buybox_winner?.price,
+      data.price
+    ];
+
+    for (const candidate of detailsPriceCandidates) {
+      if (candidate !== undefined && candidate !== null) {
+        const extracted = extractPrice(candidate);
+        if (extracted.value > 0) {
+          rawPrice = extracted.raw;
+          numericPrice = extracted.value;
+          break;
+        } else if (extracted.raw && extracted.raw !== '₹0' && rawPrice === '₹0') {
+          rawPrice = extracted.raw;
+          numericPrice = extracted.value;
+        }
+      }
+    }
+
+    // Robust original price extraction
+    let rawOriginalPrice = '';
+    const originalPriceCandidates = [
+      product.original_price,
+      product.buybox_winner?.original_price,
+      data.original_price
+    ];
+
+    for (const candidate of originalPriceCandidates) {
+      if (candidate !== undefined && candidate !== null) {
+        const extracted = extractPrice(candidate);
+        if (extracted.value > 0) {
+          rawOriginalPrice = extracted.raw;
+          break;
+        } else if (extracted.raw && extracted.raw !== '₹0' && !rawOriginalPrice) {
+          rawOriginalPrice = extracted.raw;
+        }
+      }
+    }
+
+    // Fallback original price markup if missing
+    if (!rawOriginalPrice && numericPrice > 0) {
+      const markup = Math.round(numericPrice * 1.22);
+      rawOriginalPrice = `₹${markup.toLocaleString()}`;
+    }
+
     // Mapped result matching schema
     const result = {
       id: asin,
       title: product.title,
       category: determineCategory(product.title, ''),
-      price: product.price?.raw || (product.price?.value ? `₹${product.price.value.toLocaleString()}` : '₹0'),
-      originalPrice: product.original_price?.raw || '',
+      price: rawPrice,
+      originalPrice: rawOriginalPrice,
       rating: product.rating || 4.4,
       reviews: product.reviews || product.ratings_total || 120,
       image: product.thumbnail || product.images?.[0] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=400',
