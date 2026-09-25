@@ -85,13 +85,22 @@ export const AuthProvider = ({ children }) => {
     const nextRole = activeRole === 'Buyer' ? 'Seller' : 'Buyer';
     setActiveRole(nextRole);
     
-    // Optional: Sync back to database to update role persistence
+    // Update local user object state immediately
+    if (user) {
+      setUser(prev => prev ? { ...prev, role: nextRole } : prev);
+    }
+    
+    // Sync back to database to update role persistence
     try {
-      await fetch('/api/auth/profile', {
+      const res = await fetch('/api/auth/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: nextRole }),
       });
+      const data = await res.json();
+      if (data.success && data.user) {
+        setUser(data.user);
+      }
     } catch (err) {
       console.error('Error syncing role toggle to DB:', err);
     }

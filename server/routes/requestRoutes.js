@@ -12,10 +12,10 @@ const router = express.Router();
 
 router.use(protect); // All request routes require authentication
 
-router.post('/', restrictTo('Buyer'), createRequest);
+router.post('/', createRequest);
 router.get('/', getRequests);
-router.get('/my', restrictTo('Buyer'), getMyRequests);
+router.get('/my', getMyRequests);
 router.get('/:id', getRequestById);
-router.put('/:id', restrictTo('Buyer'), updateRequest);
+router.put('/:id', updateRequest);
 
 export default router;

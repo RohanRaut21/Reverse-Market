@@ -45,7 +45,12 @@ const BuyerDashboard = ({ onCreateRequestClick, onRequestClick, activeTab, setAc
       const reqData = await reqRes.json();
 
       if (reqData.success) {
-        const myRequests = reqData.data;
+        // Strictly filter to only current user's requests
+        const currentUserId = String(user?._id || user?.id || '');
+        const myRequests = (reqData.data || []).filter(req => {
+          const reqBuyerId = String(req.buyer?._id || req.buyer || '');
+          return !currentUserId || reqBuyerId === currentUserId;
+        });
         setRequests(myRequests);
 
         // Fetch bids to compute total bids received across requests

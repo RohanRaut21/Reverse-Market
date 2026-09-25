@@ -11,9 +11,9 @@ const router = express.Router();
 
 router.use(protect); // All bid routes require authentication
 
-router.post('/', restrictTo('Seller'), placeBid);
+router.post('/', placeBid);
 router.get('/request/:requestId', getBidsForRequest);
-router.get('/my', restrictTo('Seller'), getMyBids);
+router.get('/my', getMyBids);
 router.put('/:id', updateBidStatus);
 
 export default router;

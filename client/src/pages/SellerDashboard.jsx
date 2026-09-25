@@ -120,7 +120,13 @@ const SellerDashboard = ({
       const data = await res.json();
 
       if (data.success) {
-        setRequests(data.data);
+        // Enforce exclusion of own requests when in seller dashboard
+        const currentUserId = String(user?._id || user?.id || '');
+        const otherUsersRequests = (data.data || []).filter(req => {
+          const reqBuyerId = String(req.buyer?._id || req.buyer || '');
+          return !currentUserId || reqBuyerId !== currentUserId;
+        });
+        setRequests(otherUsersRequests);
       }
     } catch (err) {
       console.error("Error fetching available requests:", err);

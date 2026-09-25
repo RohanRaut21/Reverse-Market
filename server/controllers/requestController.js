@@ -36,7 +36,10 @@ export const createRequest = async (req, res) => {
 export const getRequests = async (req, res) => {
   try {
     const { category, search, status } = req.query;
-    let query = { buyer: { $ne: req.user.id } }; // Sellers should only see requests posted by other users, not their own
+    const userId = req.user?._id || req.user?.id;
+    
+    // Sellers should only see requests posted by other users, strictly excluding their own requests
+    let query = userId ? { buyer: { $ne: userId } } : {};
 
     // Filter by category
     if (category && category !== 'All' && category !== 'All Requests') {
@@ -49,11 +52,12 @@ export const getRequests = async (req, res) => {
     }
 
     // Search keyword in title or description
-    if (search) {
+    if (search && search.trim() !== '') {
+      const searchRegex = new RegExp(search.trim(), 'i');
       query.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } },
-        { tags: { $in: [new RegExp(search, 'i')] } }
+        { title: { $regex: searchRegex } },
+        { description: { $regex: searchRegex } },
+        { tags: { $in: [searchRegex] } }
       ];
     }
 
@@ -87,12 +91,13 @@ export const getRequests = async (req, res) => {
 // @access  Private (Buyer)
 export const getMyRequests = async (req, res) => {
   try {
-    const requests = await Request.find({ buyer: req.user.id }).sort({ createdAt: -1 });
+    const userId = req.user?._id || req.user?.id;
+    const requests = await Request.find({ buyer: userId }).sort({ createdAt: -1 });
 
     // Populate bid count for each
     const requestsWithBidCount = await Promise.all(
       requests.map(async (request) => {
-        const bidCount = await Bid.countDocuments({ request: request._id, seller: { $ne: req.user.id } }); // Only count bids from other sellers
+        const bidCount = await Bid.countDocuments({ request: request._id, seller: { $ne: userId } }); // Only count bids from other sellers
         return {
           ...request.toObject(),
           bidCount,

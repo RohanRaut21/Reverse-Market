@@ -119,6 +119,13 @@ function AppContent() {
     }
   }, [user, activeRole, viewingHomepage]);
 
+  // Reset tab and active selection when switching roles between Buyer and Seller console
+  useEffect(() => {
+    setActiveTab('dashboard');
+    setCurrentCompareRequest(null);
+    setCurrentPlaceBidRequest(null);
+  }, [activeRole]);
+
   // Load seller browse requests or bids based on tab
   useEffect(() => {
     if (user && activeRole === 'Seller') {
@@ -269,7 +276,13 @@ function AppContent() {
       const res = await fetch('/api/requests/my');
       const data = await res.json();
       if (data.success) {
-        setBuyerRequests(data.data);
+        // Only show requests created by this buyer
+        const currentUserId = String(user?._id || user?.id || '');
+        const myRequests = (data.data || []).filter(req => {
+          const reqBuyerId = String(req.buyer?._id || req.buyer || '');
+          return !currentUserId || reqBuyerId === currentUserId;
+        });
+        setBuyerRequests(myRequests);
       }
     } catch (err) {
       console.error('Error fetching buyer requests for comparison:', err);
@@ -284,7 +297,13 @@ function AppContent() {
       const res = await fetch(`/api/requests?status=Active&category=${browseCategory === 'All' ? 'All' : browseCategory}&search=${browseSearch}`);
       const data = await res.json();
       if (data.success) {
-        setBrowseRequests(data.data);
+        // Exclude own requests when browsing in seller console
+        const currentUserId = String(user?._id || user?.id || '');
+        const otherUsersRequests = (data.data || []).filter(req => {
+          const reqBuyerId = String(req.buyer?._id || req.buyer || '');
+          return !currentUserId || reqBuyerId !== currentUserId;
+        });
+        setBrowseRequests(otherUsersRequests);
       }
     } catch (err) {
       console.error(err);
