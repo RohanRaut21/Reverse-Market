@@ -11,15 +11,6 @@ import {
   ChevronRight,
   ArrowUpRight
 } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-
-const chartData = [
-  { name: 'Week 1', spent: 5000 },
-  { name: 'Week 2', spent: 12000 },
-  { name: 'Week 3', spent: 8000 },
-  { name: 'Week 4', spent: 24500 },
-];
-
 const BuyerDashboard = ({ onCreateRequestClick, onRequestClick, activeTab, setActiveTab, notifications = [] }) => {
   const { user } = useAuth();
   const [requests, setRequests] = useState([]);

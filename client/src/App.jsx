@@ -34,7 +34,8 @@ import {
   ChevronRight,
   TrendingDown,
   ExternalLink,
-  ShoppingBag
+  ShoppingBag,
+  CreditCard
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -142,11 +143,13 @@ function AppContent() {
     }
   }, [user, activeRole, activeTab, browseCategory]);
 
-  // Load buyer received bids and requests when viewing received bids tab
+  // Load buyer received bids and requests when viewing relevant buyer tabs
   useEffect(() => {
-    if (user && activeRole === 'Buyer' && activeTab === 'receivedBids') {
-      fetchReceivedBids();
-      fetchBuyerRequests();
+    if (user && activeRole === 'Buyer') {
+      if (['receivedBids', 'orders', 'payments', 'reviews', 'dashboard'].includes(activeTab)) {
+        fetchReceivedBids();
+        fetchBuyerRequests();
+      }
     }
   }, [user, activeRole, activeTab]);
 
@@ -849,122 +852,195 @@ function AppContent() {
           );
 
 
-        case 'orders':
+        case 'orders': {
+          const acceptedBidsOrders = receivedBids.filter(b => b.status === 'Accepted' || b.status === 'Completed');
+          
           return (
             <div className="p-8 space-y-6 max-w-7xl mx-auto">
-              <div>
-                <h2 className="text-2xl font-bold tracking-tight text-white">My Orders</h2>
-                <p className="text-slate-400 text-sm mt-1">Track orders in progress and view transaction details.</p>
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <h2 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+                    <ShoppingBag className="w-6 h-6 text-brand" />
+                    My Orders
+                  </h2>
+                  <p className="text-slate-400 text-sm mt-1">Track orders in progress and view transaction details.</p>
+                </div>
               </div>
 
-              <div className="bg-darkBg-card border border-darkBg-border rounded-3xl overflow-hidden shadow-xl">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="border-b border-darkBg-border bg-[#0b0d19]/40 text-slate-400 font-bold uppercase tracking-wider">
-                      <th className="p-4">Item Details</th>
-                      <th className="p-4">Seller Partner</th>
-                      <th className="p-4 text-right">Escrow Amount</th>
-                      <th className="p-4 text-center">Delivery Deadline</th>
-                      <th className="p-4">Status</th>
-                      <th className="p-4 text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-darkBg-border/40">
-                    <tr className="hover:bg-darkBg-hover/10">
-                      <td className="p-4">
-                        <h4 className="font-bold text-white">Interior Design for 2BHK</h4>
-                        <span className="text-[10px] text-slate-400">Services • ID: #ORD-73921</span>
-                      </td>
-                      <td className="p-4">
-                        <span className="text-white font-semibold block">Shree Traders</span>
-                        <span className="text-[10px] text-slate-500">Completed 15 projects</span>
-                      </td>
-                      <td className="p-4 text-right font-extrabold text-white">₹48,000</td>
-                      <td className="p-4 text-center text-slate-300">15 Days (June 29, 2026)</td>
-                      <td className="p-4">
-                        <span className="px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[10px] font-bold">In Progress</span>
-                      </td>
-                      <td className="p-4 text-right">
-                        <button className="px-3 py-1.5 bg-brand hover:bg-brand-hover text-white text-[10px] font-bold rounded-lg transition-all">Mark Completed</button>
-                      </td>
-                    </tr>
-                    <tr className="hover:bg-darkBg-hover/10">
-                      <td className="p-4">
-                        <h4 className="font-bold text-white">Bulk T-Shirts (100 Pieces)</h4>
-                        <span className="text-[10px] text-slate-400">Fashion • ID: #ORD-58193</span>
-                      </td>
-                      <td className="p-4">
-                        <span className="text-white font-semibold block">FashionHub</span>
-                        <span className="text-[10px] text-slate-500">Completed 85 projects</span>
-                      </td>
-                      <td className="p-4 text-right font-extrabold text-white">₹11,500</td>
-                      <td className="p-4 text-center text-slate-300">Closed (May 17, 2026)</td>
-                      <td className="p-4">
-                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold">Completed</span>
-                      </td>
-                      <td className="p-4 text-right">
-                        <span className="text-slate-400 font-semibold">Reviewed</span>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+              {receivedBidsLoading ? (
+                <div className="bg-darkBg-card border border-darkBg-border p-12 rounded-3xl text-center text-slate-500 text-xs flex flex-col items-center gap-3 shadow-xl">
+                  <div className="w-8 h-8 border-4 border-brand border-t-transparent rounded-full animate-spin"></div>
+                  <span>Loading orders...</span>
+                </div>
+              ) : acceptedBidsOrders.length === 0 ? (
+                <div className="bg-darkBg-card border border-darkBg-border p-12 rounded-3xl text-center text-slate-500 text-xs flex flex-col items-center gap-4 shadow-xl">
+                  <div className="w-14 h-14 rounded-2xl bg-brand/10 border border-brand/20 flex items-center justify-center text-brand">
+                    <ShoppingBag className="w-7 h-7" />
+                  </div>
+                  <div className="space-y-1 max-w-md">
+                    <h3 className="text-base font-bold text-white">No Orders Placed Yet</h3>
+                    <p className="text-slate-400 text-xs leading-relaxed">
+                      You haven't accepted any seller proposals yet. When you accept a bid on your posted requests, it will become an active order and appear here with milestone tracking.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setActiveTab('receivedBids')}
+                    className="px-5 py-2.5 bg-brand hover:bg-brand-hover text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-brand/20"
+                  >
+                    Review Received Bids
+                  </button>
+                </div>
+              ) : (
+                <div className="bg-darkBg-card border border-darkBg-border rounded-3xl overflow-hidden shadow-xl">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-darkBg-border bg-[#0b0d19]/40 text-slate-400 font-bold uppercase tracking-wider">
+                        <th className="p-4">Item Details</th>
+                        <th className="p-4">Seller Partner</th>
+                        <th className="p-4 text-right">Escrow Amount</th>
+                        <th className="p-4 text-center">Delivery Timeline</th>
+                        <th className="p-4">Status</th>
+                        <th className="p-4 text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-darkBg-border/40">
+                      {acceptedBidsOrders.map((order) => {
+                        const isCompleted = order.status === 'Completed' || order.request?.status === 'Completed';
+                        return (
+                          <tr key={order._id} className="hover:bg-darkBg-hover/10">
+                            <td className="p-4">
+                              <h4 className="font-bold text-white text-sm">{order.request?.title || 'Custom Requirement'}</h4>
+                              <span className="text-[10px] text-slate-400">
+                                {order.request?.category || 'General'} • ID: #ORD-{order._id.slice(-6).toUpperCase()}
+                              </span>
+                            </td>
+                            <td className="p-4">
+                              <span className="text-white font-semibold block">{order.seller?.businessName || order.seller?.name || 'Seller Partner'}</span>
+                              <span className="text-[10px] text-slate-500">{order.seller?.email || 'Verified Partner'}</span>
+                            </td>
+                            <td className="p-4 text-right font-extrabold text-white">₹{order.bidAmount.toLocaleString()}</td>
+                            <td className="p-4 text-center text-slate-300">
+                              {order.deliveryTime} Days ({new Date(order.createdAt).toLocaleDateString()})
+                            </td>
+                            <td className="p-4">
+                              <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${
+                                isCompleted
+                                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                  : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                              }`}>
+                                {isCompleted ? 'Completed' : 'In Progress'}
+                              </span>
+                            </td>
+                            <td className="p-4 text-right">
+                              {isCompleted ? (
+                                <span className="text-emerald-400 font-semibold text-[11px]">Fulfilled ✓</span>
+                              ) : (
+                                <button 
+                                  onClick={() => handleBuyerUpdateBidStatus(order._id, 'Completed')}
+                                  className="px-3 py-1.5 bg-brand hover:bg-brand-hover text-white text-[10px] font-bold rounded-lg transition-all"
+                                >
+                                  Mark Completed
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           );
+        }
 
-        case 'payments':
+        case 'payments': {
+          const acceptedBidsOrders = receivedBids.filter(b => b.status === 'Accepted' || b.status === 'Completed');
+          const inEscrowOrders = acceptedBidsOrders.filter(b => b.status === 'Accepted');
+          const completedOrders = acceptedBidsOrders.filter(b => b.status === 'Completed');
+          
+          const inEscrowAmount = inEscrowOrders.reduce((sum, b) => sum + (b.bidAmount || 0), 0);
+          const completedAmount = completedOrders.reduce((sum, b) => sum + (b.bidAmount || 0), 0);
+          const totalDeposited = inEscrowAmount + completedAmount;
+
           return (
             <div className="p-8 space-y-8 max-w-7xl mx-auto">
               <div>
-                <h2 className="text-2xl font-bold tracking-tight text-white">Payments & Escrow</h2>
+                <h2 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+                  <CreditCard className="w-6 h-6 text-brand" />
+                  Payments & Escrow
+                </h2>
                 <p className="text-slate-400 text-sm mt-1">Review your invoices, escrow holdings, and spending history.</p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-darkBg-card border border-darkBg-border p-6 rounded-2xl">
                   <span className="text-xs text-slate-400 font-bold uppercase block tracking-wider">Total Deposited</span>
-                  <span className="text-2xl font-extrabold text-white mt-1 block">₹59,500</span>
+                  <span className="text-2xl font-extrabold text-white mt-1 block">₹{totalDeposited.toLocaleString()}</span>
                   <span className="text-[10px] text-emerald-400 mt-2 block font-semibold">★ Escrow Protection fully active</span>
                 </div>
                 <div className="bg-darkBg-card border border-darkBg-border p-6 rounded-2xl">
                   <span className="text-xs text-slate-400 font-bold uppercase block tracking-wider">In Escrow Holding</span>
-                  <span className="text-2xl font-extrabold text-white mt-1 block">₹48,000</span>
-                  <span className="text-[10px] text-blue-400 mt-2 block font-semibold">1 Active contract</span>
+                  <span className="text-2xl font-extrabold text-white mt-1 block">₹{inEscrowAmount.toLocaleString()}</span>
+                  <span className="text-[10px] text-blue-400 mt-2 block font-semibold">
+                    {inEscrowOrders.length === 0 ? 'No active holding' : `${inEscrowOrders.length} Active contract${inEscrowOrders.length === 1 ? '' : 's'}`}
+                  </span>
                 </div>
                 <div className="bg-darkBg-card border border-darkBg-border p-6 rounded-2xl">
                   <span className="text-xs text-slate-400 font-bold uppercase block tracking-wider">Completed Payouts</span>
-                  <span className="text-2xl font-extrabold text-white mt-1 block">₹11,500</span>
-                  <span className="text-[10px] text-slate-400 mt-2 block font-semibold">1 Released contract</span>
+                  <span className="text-2xl font-extrabold text-white mt-1 block">₹{completedAmount.toLocaleString()}</span>
+                  <span className="text-[10px] text-slate-400 mt-2 block font-semibold">
+                    {completedOrders.length === 0 ? 'No released payouts' : `${completedOrders.length} Released contract${completedOrders.length === 1 ? '' : 's'}`}
+                  </span>
                 </div>
               </div>
 
               <div className="bg-darkBg-card border border-darkBg-border rounded-3xl p-6 shadow-xl space-y-4">
                 <h3 className="text-sm font-bold text-white">Payment Transactions Log</h3>
-                <div className="divide-y divide-darkBg-border text-xs">
-                  <div className="py-3.5 flex justify-between items-center">
-                    <div>
-                      <h4 className="font-bold text-white">Released Escrow to FashionHub</h4>
-                      <span className="text-[10px] text-slate-500">Invoice: #INV-001 • May 18, 2026</span>
-                    </div>
-                    <span className="text-red-400 font-extrabold">-₹11,500</span>
+                {acceptedBidsOrders.length === 0 ? (
+                  <div className="py-10 text-center text-slate-500 text-xs">
+                    No payment transactions recorded yet. When you accept quotes and fund escrows, transaction entries will appear here.
                   </div>
-                  <div className="py-3.5 flex justify-between items-center">
-                    <div>
-                      <h4 className="font-bold text-white">Deposited in Escrow (Shree Traders)</h4>
-                      <span className="text-[10px] text-slate-500">Contract: #ORD-73921 • May 15, 2026</span>
-                    </div>
-                    <span className="text-slate-300 font-extrabold">₹48,000</span>
+                ) : (
+                  <div className="divide-y divide-darkBg-border text-xs">
+                    {acceptedBidsOrders.map((order) => {
+                      const isCompleted = order.status === 'Completed';
+                      return (
+                        <div key={order._id} className="py-3.5 flex justify-between items-center">
+                          <div>
+                            <h4 className="font-bold text-white">
+                              {isCompleted 
+                                ? `Released Escrow to ${order.seller?.businessName || order.seller?.name || 'Seller Partner'}` 
+                                : `Deposited in Escrow (${order.seller?.businessName || order.seller?.name || 'Seller Partner'})`}
+                            </h4>
+                            <span className="text-[10px] text-slate-500">
+                              {isCompleted 
+                                ? `Invoice: #INV-${order._id.slice(-6).toUpperCase()} • ${new Date(order.updatedAt || order.createdAt).toLocaleDateString()}` 
+                                : `Contract: #ORD-${order._id.slice(-6).toUpperCase()} • ${new Date(order.createdAt).toLocaleDateString()}`}
+                            </span>
+                          </div>
+                          <span className={`font-extrabold ${isCompleted ? 'text-red-400' : 'text-slate-300'}`}>
+                            {isCompleted ? `-₹${order.bidAmount.toLocaleString()}` : `₹${order.bidAmount.toLocaleString()}`}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
-                </div>
+                )}
               </div>
             </div>
           );
+        }
 
-        case 'reviews':
+        case 'reviews': {
+          const completedOrders = receivedBids.filter(b => b.status === 'Completed');
           return (
             <div className="p-8 space-y-6 max-w-4xl mx-auto">
               <div>
-                <h2 className="text-2xl font-bold tracking-tight text-white">Reviews & Feedback</h2>
+                <h2 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+                  <Star className="w-6 h-6 text-yellow-400" />
+                  Reviews & Feedback
+                </h2>
                 <p className="text-slate-400 text-sm mt-1">Review ratings submitted by you and received from sellers.</p>
               </div>
 
@@ -972,18 +1048,19 @@ function AppContent() {
                 <div className="space-y-1">
                   <span className="text-xs text-slate-400 font-bold uppercase block tracking-wider">Your Buyer Rating</span>
                   <div className="flex items-center gap-1.5 pt-1">
-                    <span className="text-3xl font-extrabold text-white">5.0</span>
+                    <span className="text-3xl font-extrabold text-white">{user?.rating ? user.rating.toFixed(1) : '5.0'}</span>
                     <span className="flex items-center text-yellow-400 font-bold bg-yellow-500/10 px-2 py-0.5 rounded text-xs gap-0.5">
                       <Star className="w-3 h-3 fill-current" /> ★★★★★
                     </span>
                   </div>
                 </div>
                 <div className="text-right text-xs text-slate-400">
-                  <span>Based on 2 jobs completed</span>
+                  <span>Based on {completedOrders.length} completed contract{completedOrders.length === 1 ? '' : 's'}</span>
                 </div>
               </div>
             </div>
           );
+        }
 
         case 'settings':
           return (

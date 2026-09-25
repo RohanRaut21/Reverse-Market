@@ -178,8 +178,8 @@ export const updateBidStatus = async (req, res) => {
 
     const request = bid.request;
 
-    // Buyer actions: Shortlist or Accept
-    if (['Shortlisted', 'Accepted'].includes(status)) {
+    // Buyer actions: Shortlist, Accept, or Complete
+    if (['Shortlisted', 'Accepted', 'Completed'].includes(status)) {
       if (request.buyer.toString() !== req.user.id) {
         return res.status(401).json({ success: false, message: 'Not authorized to update this bid status' });
       }
@@ -197,6 +197,9 @@ export const updateBidStatus = async (req, res) => {
           { request: request._id, _id: { $ne: bid._id } },
           { status: 'Outbid' }
         );
+      } else if (status === 'Completed') {
+        request.status = 'Completed';
+        await request.save();
       }
     } 
     // Seller actions: Withdraw
