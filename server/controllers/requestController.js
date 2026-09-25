@@ -6,7 +6,7 @@ import Bid from '../models/Bid.js';
 // @access  Private (Buyer)
 export const createRequest = async (req, res) => {
   try {
-    const { title, description, category, budget, deadline, images, tags } = req.body;
+    const { title, description, category, budget, deadline, images, tags, mandatorySpecs, preferredSpecs } = req.body;
 
     const request = await Request.create({
       buyer: req.user.id,
@@ -17,6 +17,8 @@ export const createRequest = async (req, res) => {
       deadline,
       images: images || [],
       tags: tags || [],
+      mandatorySpecs: Array.isArray(mandatorySpecs) ? mandatorySpecs.filter(s => typeof s === 'string' && s.trim().length > 0) : [],
+      preferredSpecs: Array.isArray(preferredSpecs) ? preferredSpecs.filter(s => typeof s === 'string' && s.trim().length > 0) : [],
     });
 
     res.status(201).json({

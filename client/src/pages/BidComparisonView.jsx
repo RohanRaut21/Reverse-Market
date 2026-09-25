@@ -63,6 +63,18 @@ const BidComparisonView = ({ request, onBack, onChatClick }) => {
     }
   };
 
+  const [sortBy, setSortBy] = useState('price'); // 'price', 'quality', 'delivery'
+
+  const sortedBids = [...bids].sort((a, b) => {
+    if (sortBy === 'quality') {
+      return (b.qualityScore || 0) - (a.qualityScore || 0);
+    }
+    if (sortBy === 'delivery') {
+      return a.deliveryTime - b.deliveryTime;
+    }
+    return a.bidAmount - b.bidAmount; // default price
+  });
+
   return (
     <div className="p-8 space-y-8 max-w-7xl mx-auto">
       {/* Back Header */}
@@ -115,6 +127,41 @@ const BidComparisonView = ({ request, onBack, onChatClick }) => {
             </div>
           </div>
 
+          {/* Quality-Aware Specifications (QARM) Display */}
+          {request.mandatorySpecs && request.mandatorySpecs.length > 0 && (
+            <div className="space-y-1.5 border-t border-darkBg-border/40 pt-3">
+              <span className="text-[10px] text-rose-400 font-bold uppercase tracking-wider block flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                <span>Mandatory Criteria ({request.mandatorySpecs.length})</span>
+              </span>
+              <div className="space-y-1">
+                {request.mandatorySpecs.map((spec, i) => (
+                  <div key={i} className="text-[11px] text-slate-300 bg-[#0b0d19] border border-rose-500/20 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
+                    <span className="text-rose-400 font-bold">•</span>
+                    <span>{spec}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {request.preferredSpecs && request.preferredSpecs.length > 0 && (
+            <div className="space-y-1.5 border-t border-darkBg-border/40 pt-3">
+              <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider block flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                <span>Preferred Perks ({request.preferredSpecs.length})</span>
+              </span>
+              <div className="space-y-1">
+                {request.preferredSpecs.map((spec, i) => (
+                  <div key={i} className="text-[11px] text-slate-300 bg-[#0b0d19] border border-emerald-500/20 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
+                    <span className="text-emerald-400 font-bold">★</span>
+                    <span>{spec}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Tags */}
           <div className="flex flex-wrap gap-2 pt-2 border-t border-darkBg-border/40">
             {request.tags && request.tags.map((tag, i) => (
@@ -139,9 +186,25 @@ const BidComparisonView = ({ request, onBack, onChatClick }) => {
 
         {/* Right Side: Bid Comparison Grid Matrix */}
         <div className="lg:col-span-8 bg-darkBg-card border border-darkBg-border rounded-3xl p-6 shadow-xl space-y-6">
-          <div>
-            <h3 className="text-lg font-bold text-white">Compare Bids - {request.title}</h3>
-            <p className="text-xs text-slate-400 mt-1">Review proposals, compare pricing and delivery, and accept the best offer.</p>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <div>
+              <h3 className="text-lg font-bold text-white">Compare Bids - {request.title}</h3>
+              <p className="text-xs text-slate-400 mt-1">Multi-attribute evaluation: compare price, delivery, and quality compliance score.</p>
+            </div>
+
+            {/* Sort Filter Selector */}
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-slate-500 font-semibold">Sort by:</span>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="px-2.5 py-1.5 bg-[#0b0d19] border border-darkBg-border rounded-xl text-xs text-slate-300 font-semibold focus:outline-none focus:border-brand"
+              >
+                <option value="price">Lowest Price</option>
+                <option value="quality">⭐ Quality Match Score</option>
+                <option value="delivery">Fastest Delivery</option>
+              </select>
+            </div>
           </div>
 
           {error && (
@@ -160,17 +223,33 @@ const BidComparisonView = ({ request, onBack, onChatClick }) => {
               <table className="w-full border-collapse text-left">
                 <thead>
                   <tr className="border-b border-darkBg-border/60 text-xs font-bold text-slate-400 uppercase tracking-wider">
-                    <th className="py-3 pr-4">Seller Details</th>
-                    <th className="py-3 px-4 text-right">Price Offer</th>
-                    <th className="py-3 px-4 text-center">Delivery Time</th>
-                    <th className="py-3 px-4">Proposal Message</th>
-                    <th className="py-3 pl-4 text-right">Actions</th>
+                    <th className="py-3 pr-3">Seller</th>
+                    <th className="py-3 px-3 text-right">Price Offer</th>
+                    <th className="py-3 px-3 text-center">Quality Match</th>
+                    <th className="py-3 px-3 text-center">Delivery</th>
+                    <th className="py-3 px-3">Proposal & Specs Compliance</th>
+                    <th className="py-3 pl-3 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-darkBg-border/40 text-xs">
-                  {bids.map((bid) => {
+                  {sortedBids.map((bid) => {
                     const isAccepted = bid.status === 'Accepted';
                     const isShortlisted = bid.status === 'Shortlisted';
+                    const score = bid.qualityScore !== undefined ? bid.qualityScore : 100;
+                    
+                    // Quality score styling
+                    let scoreBadgeColor = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
+                    if (score < 70) {
+                      scoreBadgeColor = 'bg-rose-500/10 text-rose-400 border-rose-500/30';
+                    } else if (score < 90) {
+                      scoreBadgeColor = 'bg-amber-500/10 text-amber-400 border-amber-500/30';
+                    }
+
+                    const satMandatoryCount = bid.specsCompliance?.filter(c => c.satisfied).length || 0;
+                    const totalMandatoryCount = bid.specsCompliance?.length || 0;
+                    const incPreferredCount = bid.preferredOffered?.filter(p => p.included).length || 0;
+                    const totalPreferredCount = bid.preferredOffered?.length || 0;
+
                     return (
                       <tr 
                         key={bid._id} 
@@ -179,19 +258,18 @@ const BidComparisonView = ({ request, onBack, onChatClick }) => {
                         }`}
                       >
                         {/* Seller Metadata */}
-                        <td className="py-4 pr-4">
-                          <div className="flex items-center gap-3">
+                        <td className="py-4 pr-3">
+                          <div className="flex items-center gap-2.5">
                             <img 
                               src={bid.seller?.profileImage || `https://api.dicebear.com/7.x/initials/svg?seed=${bid.seller?.name}`}
                               alt={bid.seller?.name}
-                              className="w-9 h-9 rounded-xl object-cover border border-darkBg-border/80 flex-shrink-0"
+                              className="w-8 h-8 rounded-xl object-cover border border-darkBg-border/80 flex-shrink-0"
                             />
                             <div>
-                              <h5 className="font-bold text-white leading-snug">
+                              <h5 className="font-bold text-white leading-snug text-xs">
                                 {bid.seller?.businessName || bid.seller?.name}
                               </h5>
-                              <div className="flex items-center gap-1.5 mt-0.5">
-                                <span className="text-[10px] text-slate-400">{bid.seller?.name}</span>
+                              <div className="flex items-center gap-1 mt-0.5">
                                 <span className="flex items-center gap-0.5 bg-yellow-500/10 text-yellow-400 px-1 rounded text-[9px] font-bold">
                                   <Star className="w-2.5 h-2.5 fill-current" /> {bid.seller?.rating || 5.0}
                                 </span>
@@ -201,22 +279,58 @@ const BidComparisonView = ({ request, onBack, onChatClick }) => {
                         </td>
 
                         {/* Price Offer */}
-                        <td className="py-4 px-4 text-right font-extrabold text-white">
+                        <td className="py-4 px-3 text-right font-extrabold text-white text-sm">
                           ₹{bid.bidAmount.toLocaleString()}
                         </td>
 
+                        {/* Quality Match Score */}
+                        <td className="py-4 px-3 text-center">
+                          <div className="inline-flex flex-col items-center">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold border ${scoreBadgeColor}`}>
+                              ⭐ {score}% Match
+                            </span>
+                            {totalMandatoryCount > 0 && (
+                              <span className="text-[9px] text-slate-500 mt-0.5">
+                                {satMandatoryCount === totalMandatoryCount ? '✓ All Mandatory' : `⚠ ${satMandatoryCount}/${totalMandatoryCount} Mandatory`}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+
                         {/* Delivery Time */}
-                        <td className="py-4 px-4 text-center text-slate-300 font-semibold">
+                        <td className="py-4 px-3 text-center text-slate-300 font-semibold">
                           {bid.deliveryTime} Days
                         </td>
 
-                        {/* Proposal Message */}
-                        <td className="py-4 px-4 text-slate-400 max-w-xs truncate leading-relaxed">
-                          {bid.proposalMessage}
+                        {/* Proposal & Specs Compliance */}
+                        <td className="py-4 px-3 max-w-xs space-y-1">
+                          <p className="text-slate-400 truncate leading-relaxed">
+                            {bid.proposalMessage}
+                          </p>
+                          
+                          {/* Compliance Tags */}
+                          {(totalMandatoryCount > 0 || totalPreferredCount > 0) && (
+                            <div className="flex flex-wrap gap-1 pt-1">
+                              {totalMandatoryCount > 0 && (
+                                <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${
+                                  satMandatoryCount === totalMandatoryCount 
+                                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
+                                    : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                                }`}>
+                                  {satMandatoryCount === totalMandatoryCount ? '✓ Mandatory Met' : `⚠ ${satMandatoryCount}/${totalMandatoryCount} Mandatory`}
+                                </span>
+                              )}
+                              {incPreferredCount > 0 && (
+                                <span className="text-[9px] px-1.5 py-0.5 rounded font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                                  ★ {incPreferredCount} Perks Included
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </td>
 
                         {/* Actions Matrix */}
-                        <td className="py-4 pl-4 text-right">
+                        <td className="py-4 pl-3 text-right">
                           <div className="flex items-center justify-end gap-2">
                             {/* Chat button */}
                             <button

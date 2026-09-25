@@ -23,6 +23,24 @@ const bidSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Please add a proposal message'],
   },
+  specsCompliance: [{
+    spec: String,
+    satisfied: {
+      type: Boolean,
+      default: false,
+    }
+  }],
+  preferredOffered: [{
+    spec: String,
+    included: {
+      type: Boolean,
+      default: false,
+    }
+  }],
+  qualityScore: {
+    type: Number,
+    default: 100,
+  },
   status: {
     type: String,
     enum: ['Pending', 'Shortlisted', 'Outbid', 'Accepted', 'Withdrawn'],

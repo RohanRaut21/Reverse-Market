@@ -6,7 +6,7 @@ import Request from '../models/Request.js';
 // @access  Private (Seller)
 export const placeBid = async (req, res) => {
   try {
-    const { requestId, bidAmount, deliveryTime, proposalMessage } = req.body;
+    const { requestId, bidAmount, deliveryTime, proposalMessage, specsCompliance, preferredOffered } = req.body;
 
     // Check if request exists
     const request = await Request.findById(requestId);
@@ -29,18 +29,38 @@ export const placeBid = async (req, res) => {
       return res.status(400).json({ success: false, message: 'You have already placed a bid on this request' });
     }
 
+    // Calculate Quality Score based on mandatory and preferred specs compliance
+    const totalMandatory = request.mandatorySpecs?.length || 0;
+    const totalPreferred = request.preferredSpecs?.length || 0;
+
+    const validSpecsCompliance = Array.isArray(specsCompliance) ? specsCompliance : [];
+    const validPreferredOffered = Array.isArray(preferredOffered) ? preferredOffered : [];
+
+    const satisfiedMandatoryCount = validSpecsCompliance.filter(c => c.satisfied).length;
+    const includedPreferredCount = validPreferredOffered.filter(p => p.included).length;
+
+    let computedQualityScore = 100;
+    if (totalMandatory > 0 && totalPreferred > 0) {
+      // 70% weight to mandatory specs, 30% weight to preferred perks
+      const mandScore = (satisfiedMandatoryCount / totalMandatory) * 70;
+      const prefScore = (includedPreferredCount / totalPreferred) * 30;
+      computedQualityScore = Math.round(mandScore + prefScore);
+    } else if (totalMandatory > 0) {
+      computedQualityScore = Math.round((satisfiedMandatoryCount / totalMandatory) * 100);
+    } else if (totalPreferred > 0) {
+      computedQualityScore = Math.round((includedPreferredCount / totalPreferred) * 100);
+    }
+
     const bid = await Bid.create({
       request: requestId,
       seller: req.user.id,
       bidAmount,
       deliveryTime,
       proposalMessage,
+      specsCompliance: validSpecsCompliance,
+      preferredOffered: validPreferredOffered,
+      qualityScore: computedQualityScore
     });
-
-    // Automatically update status of other bids to 'Outbid' if needed?
-    // No, standard flow allows multiple bids to remain 'Pending' until accepted/shortlisted.
-    // However, if we want to show outbid status, we could do it dynamically or when bid amount is higher than lowest.
-    // For simplicity, we keep status as Pending.
 
     res.status(201).json({
       success: true,

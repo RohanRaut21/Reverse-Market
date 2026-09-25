@@ -8,6 +8,36 @@ const CreateRequestModal = ({ isOpen, onClose, onRequestCreated }) => {
   const [deadline, setDeadline] = useState('');
   const [description, setDescription] = useState('');
   const [images, setImages] = useState([]);
+  const [mandatorySpecs, setMandatorySpecs] = useState([]);
+  const [preferredSpecs, setPreferredSpecs] = useState([]);
+  const [newMandatory, setNewMandatory] = useState('');
+  const [newPreferred, setNewPreferred] = useState('');
+
+  const handleAddMandatory = (e) => {
+    if (e) e.preventDefault();
+    const val = newMandatory.trim();
+    if (val && !mandatorySpecs.includes(val)) {
+      setMandatorySpecs([...mandatorySpecs, val]);
+      setNewMandatory('');
+    }
+  };
+
+  const handleRemoveMandatory = (index) => {
+    setMandatorySpecs(mandatorySpecs.filter((_, i) => i !== index));
+  };
+
+  const handleAddPreferred = (e) => {
+    if (e) e.preventDefault();
+    const val = newPreferred.trim();
+    if (val && !preferredSpecs.includes(val)) {
+      setPreferredSpecs([...preferredSpecs, val]);
+      setNewPreferred('');
+    }
+  };
+
+  const handleRemovePreferred = (index) => {
+    setPreferredSpecs(preferredSpecs.filter((_, i) => i !== index));
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -108,6 +138,8 @@ const CreateRequestModal = ({ isOpen, onClose, onRequestCreated }) => {
       budget: Number(budget),
       deadline: new Date(deadline),
       description,
+      mandatorySpecs,
+      preferredSpecs,
       // Pass a default mockup image matching category for seed representation
       images: images.length > 0 ? images : [
         category === 'Electronics' 
@@ -135,6 +167,8 @@ const CreateRequestModal = ({ isOpen, onClose, onRequestCreated }) => {
         setBudget('');
         setDeadline('');
         setDescription('');
+        setMandatorySpecs([]);
+        setPreferredSpecs([]);
       } else {
         setError(data.message || 'Error creating request');
       }
@@ -245,6 +279,166 @@ const CreateRequestModal = ({ isOpen, onClose, onRequestCreated }) => {
               placeholder="Describe your requirement in detail. Include specifications, preferences, brand, model, etc."
               className="w-full px-3.5 py-2.5 bg-[#0b0d19] border border-darkBg-border rounded-xl text-xs focus:outline-none focus:border-brand text-white resize-none"
             ></textarea>
+          </div>
+
+          {/* Quality-Aware Specifications Section (QARM) */}
+          <div className="bg-[#0b0d19]/80 border border-darkBg-border/80 rounded-2xl p-3.5 space-y-3.5">
+            <div className="flex items-center justify-between border-b border-darkBg-border/40 pb-2">
+              <div>
+                <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-brand" />
+                  <span>Quality-Aware Specifications</span>
+                </h4>
+                <p className="text-[10px] text-slate-400 mt-0.5">
+                  Set mandatory constraints and bonus perks for structured seller bidding.
+                </p>
+              </div>
+              <span className="text-[9px] bg-brand/10 text-brand border border-brand/20 px-2 py-0.5 rounded font-bold uppercase tracking-wider">
+                QARM Filter
+              </span>
+            </div>
+
+            {/* Mandatory Specs (Hard Constraints) */}
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <label className="text-[11px] font-bold text-rose-400 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                  <span>Mandatory Specifications (Must-Have)</span>
+                </label>
+                <span className="text-[9px] text-slate-500">Non-negotiable criteria</span>
+              </div>
+
+              <div className="flex gap-2">
+                <input 
+                  type="text"
+                  value={newMandatory}
+                  onChange={(e) => setNewMandatory(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddMandatory(); } }}
+                  placeholder="e.g. Min 16GB RAM, Sealed Box, GST Invoice..."
+                  className="flex-1 px-3 py-1.5 bg-[#080a14] border border-rose-500/30 rounded-xl text-xs focus:outline-none focus:border-rose-500 text-white"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddMandatory}
+                  className="px-3 py-1.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-xs font-bold rounded-xl border border-rose-500/40 transition-all"
+                >
+                  + Add
+                </button>
+              </div>
+
+              {/* Tag Chips */}
+              <div className="flex flex-wrap gap-1.5 min-h-[22px]">
+                {mandatorySpecs.length === 0 ? (
+                  <span className="text-[10px] text-slate-500 italic">No mandatory criteria added yet.</span>
+                ) : (
+                  mandatorySpecs.map((spec, idx) => (
+                    <span 
+                      key={idx} 
+                      className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-[10px] font-semibold bg-rose-500/10 text-rose-300 border border-rose-500/30"
+                    >
+                      <span>{spec}</span>
+                      <button 
+                        type="button" 
+                        onClick={() => handleRemoveMandatory(idx)}
+                        className="hover:text-white font-bold ml-0.5"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))
+                )}
+              </div>
+
+              {/* Quick suggestions */}
+              <div className="flex flex-wrap gap-1 items-center pt-0.5">
+                <span className="text-[9px] text-slate-500">Presets:</span>
+                {['Brand New / Sealed', '1-Year Warranty', 'Original GST Bill', 'OEM Parts Only'].map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => {
+                      if (!mandatorySpecs.includes(preset)) {
+                        setMandatorySpecs([...mandatorySpecs, preset]);
+                      }
+                    }}
+                    className="text-[9px] px-2 py-0.5 rounded bg-darkBg hover:bg-rose-500/10 text-slate-400 hover:text-rose-300 border border-darkBg-border transition-colors"
+                  >
+                    + {preset}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Preferred Specs (Soft Constraints / Value-Adds) */}
+            <div className="space-y-2 border-t border-darkBg-border/40 pt-2.5">
+              <div className="flex justify-between items-center">
+                <label className="text-[11px] font-bold text-emerald-400 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                  <span>Preferred Specifications (Nice-to-Have / Perks)</span>
+                </label>
+                <span className="text-[9px] text-slate-500">Boosts quality match score</span>
+              </div>
+
+              <div className="flex gap-2">
+                <input 
+                  type="text"
+                  value={newPreferred}
+                  onChange={(e) => setNewPreferred(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddPreferred(); } }}
+                  placeholder="e.g. Free Protective Sleeve, Same-Day Dispatch..."
+                  className="flex-1 px-3 py-1.5 bg-[#080a14] border border-emerald-500/30 rounded-xl text-xs focus:outline-none focus:border-emerald-500 text-white"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddPreferred}
+                  className="px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-xs font-bold rounded-xl border border-emerald-500/40 transition-all"
+                >
+                  + Add
+                </button>
+              </div>
+
+              {/* Tag Chips */}
+              <div className="flex flex-wrap gap-1.5 min-h-[22px]">
+                {preferredSpecs.length === 0 ? (
+                  <span className="text-[10px] text-slate-500 italic">No preferred perks added yet.</span>
+                ) : (
+                  preferredSpecs.map((spec, idx) => (
+                    <span 
+                      key={idx} 
+                      className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-[10px] font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/30"
+                    >
+                      <span>{spec}</span>
+                      <button 
+                        type="button" 
+                        onClick={() => handleRemovePreferred(idx)}
+                        className="hover:text-white font-bold ml-0.5"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))
+                )}
+              </div>
+
+              {/* Quick suggestions */}
+              <div className="flex flex-wrap gap-1 items-center pt-0.5">
+                <span className="text-[9px] text-slate-500">Presets:</span>
+                {['Same-Day Dispatch', 'Free Shipping Included', 'Carry Case / Sleeve', '2-Year Warranty'].map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => {
+                      if (!preferredSpecs.includes(preset)) {
+                        setPreferredSpecs([...preferredSpecs, preset]);
+                      }
+                    }}
+                    className="text-[9px] px-2 py-0.5 rounded bg-darkBg hover:bg-emerald-500/10 text-slate-400 hover:text-emerald-300 border border-darkBg-border transition-colors"
+                  >
+                    + {preset}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* Uploader Interactive Widget */}

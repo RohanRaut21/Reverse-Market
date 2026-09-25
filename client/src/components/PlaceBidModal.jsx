@@ -1,12 +1,30 @@
-import React, { useState } from 'react';
-import { X, Gavel, Calendar } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Gavel, Calendar, ShieldCheck } from 'lucide-react';
 
 const PlaceBidModal = ({ isOpen, onClose, request, onBidPlaced }) => {
   const [bidAmount, setBidAmount] = useState('');
   const [deliveryTime, setDeliveryTime] = useState('3'); // Default 3 days
   const [proposalMessage, setProposalMessage] = useState('');
+  const [specsCompliance, setSpecsCompliance] = useState([]);
+  const [preferredOffered, setPreferredOffered] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (request) {
+      if (request.mandatorySpecs && Array.isArray(request.mandatorySpecs)) {
+        setSpecsCompliance(request.mandatorySpecs.map(spec => ({ spec, satisfied: true })));
+      } else {
+        setSpecsCompliance([]);
+      }
+
+      if (request.preferredSpecs && Array.isArray(request.preferredSpecs)) {
+        setPreferredOffered(request.preferredSpecs.map(spec => ({ spec, included: false })));
+      } else {
+        setPreferredOffered([]);
+      }
+    }
+  }, [request]);
 
   if (!isOpen || !request) return null;
 
@@ -19,7 +37,9 @@ const PlaceBidModal = ({ isOpen, onClose, request, onBidPlaced }) => {
       requestId: request._id,
       bidAmount: Number(bidAmount),
       deliveryTime: Number(deliveryTime),
-      proposalMessage
+      proposalMessage,
+      specsCompliance,
+      preferredOffered
     };
 
     try {
@@ -136,6 +156,112 @@ const PlaceBidModal = ({ isOpen, onClose, request, onBidPlaced }) => {
               </select>
             </div>
           </div>
+
+          {/* Quality Specifications Compliance Checklist (QARM) */}
+          {((request.mandatorySpecs && request.mandatorySpecs.length > 0) || (request.preferredSpecs && request.preferredSpecs.length > 0)) && (
+            <div className="bg-[#0b0d19] border border-darkBg-border/80 rounded-2xl p-4 space-y-4">
+              <div className="flex items-center justify-between border-b border-darkBg-border/40 pb-2">
+                <div>
+                  <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <ShieldCheck className="w-4 h-4 text-brand" />
+                    <span>Quality Specifications Compliance</span>
+                  </h4>
+                  <p className="text-[10px] text-slate-400 mt-0.5">
+                    Verify non-negotiable items and check bonus perks you include.
+                  </p>
+                </div>
+                <span className="text-[9px] bg-brand/10 text-brand border border-brand/20 px-2 py-0.5 rounded font-bold uppercase tracking-wider">
+                  Structured Bid
+                </span>
+              </div>
+
+              {/* Mandatory Checklist */}
+              {request.mandatorySpecs && request.mandatorySpecs.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[11px] font-bold text-rose-400 flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                      <span>Mandatory Requirements (Must Fulfill)</span>
+                    </label>
+                    <span className="text-[9px] text-slate-500">Required by buyer</span>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    {specsCompliance.map((item, idx) => (
+                      <label 
+                        key={idx} 
+                        className={`flex items-start gap-2.5 p-2 rounded-xl border text-xs cursor-pointer transition-all ${
+                          item.satisfied 
+                            ? 'bg-rose-500/10 border-rose-500/30 text-rose-200' 
+                            : 'bg-[#080a14] border-darkBg-border/60 text-slate-400 hover:border-slate-600'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={item.satisfied}
+                          onChange={(e) => {
+                            const updated = [...specsCompliance];
+                            updated[idx].satisfied = e.target.checked;
+                            setSpecsCompliance(updated);
+                          }}
+                          className="mt-0.5 rounded accent-rose-500"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <span className="font-semibold block leading-tight">{item.spec}</span>
+                          <span className="text-[9px] text-slate-500 mt-0.5 block">
+                            {item.satisfied ? '✓ Guaranteed in proposal' : '⚠ Not included (may decrease match score)'}
+                          </span>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Preferred Perks Checklist */}
+              {request.preferredSpecs && request.preferredSpecs.length > 0 && (
+                <div className="space-y-2 border-t border-darkBg-border/40 pt-2.5">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[11px] font-bold text-emerald-400 flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                      <span>Preferred Value-Adds (Optional Perks)</span>
+                    </label>
+                    <span className="text-[9px] text-slate-500">Boosts your bid rank</span>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    {preferredOffered.map((item, idx) => (
+                      <label 
+                        key={idx} 
+                        className={`flex items-start gap-2.5 p-2 rounded-xl border text-xs cursor-pointer transition-all ${
+                          item.included 
+                            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-200' 
+                            : 'bg-[#080a14] border-darkBg-border/60 text-slate-400 hover:border-slate-600'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={item.included}
+                          onChange={(e) => {
+                            const updated = [...preferredOffered];
+                            updated[idx].included = e.target.checked;
+                            setPreferredOffered(updated);
+                          }}
+                          className="mt-0.5 rounded accent-emerald-500"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <span className="font-semibold block leading-tight">{item.spec}</span>
+                          <span className="text-[9px] text-slate-500 mt-0.5 block">
+                            {item.included ? '★ Bonus perk included with quote' : 'Not included'}
+                          </span>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Proposal Description */}
           <div className="space-y-1.5">

@@ -39,6 +39,14 @@ const requestSchema = new mongoose.Schema({
   tags: [{
     type: String,
   }],
+  mandatorySpecs: [{
+    type: String,
+    trim: true,
+  }],
+  preferredSpecs: [{
+    type: String,
+    trim: true,
+  }],
   featured: {
     type: Boolean,
     default: false,

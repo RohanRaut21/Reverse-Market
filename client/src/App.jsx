@@ -861,6 +861,47 @@ function AppContent() {
                     {currentCompareRequest.description}
                   </div>
 
+                  {/* Quality Specifications Display */}
+                  {((currentCompareRequest.mandatorySpecs && currentCompareRequest.mandatorySpecs.length > 0) || (currentCompareRequest.preferredSpecs && currentCompareRequest.preferredSpecs.length > 0)) && (
+                    <div className="bg-[#0b0d19] p-4 rounded-xl border border-darkBg-border/50 space-y-3">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
+                        Quality-Aware Criteria (QARM)
+                      </span>
+                      
+                      {currentCompareRequest.mandatorySpecs && currentCompareRequest.mandatorySpecs.length > 0 && (
+                        <div className="space-y-1">
+                          <span className="text-[10px] text-rose-400 font-bold flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                            Mandatory Criteria (Must Comply):
+                          </span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {currentCompareRequest.mandatorySpecs.map((spec, i) => (
+                              <span key={i} className="px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-rose-500/10 text-rose-300 border border-rose-500/20">
+                                • {spec}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {currentCompareRequest.preferredSpecs && currentCompareRequest.preferredSpecs.length > 0 && (
+                        <div className="space-y-1 pt-1 border-t border-darkBg-border/30">
+                          <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                            Preferred Value-Adds (Bonus Perks):
+                          </span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {currentCompareRequest.preferredSpecs.map((spec, i) => (
+                              <span key={i} className="px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
+                                ★ {spec}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-2 gap-4 text-xs border-t border-darkBg-border/40 pt-4">
                     <div>
                       <span className="text-slate-500 font-semibold block">Maximum Budget</span>
