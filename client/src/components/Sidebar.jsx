@@ -18,13 +18,13 @@ import {
   Home
 } from 'lucide-react';
 
-const Sidebar = ({ activeTab, setActiveTab, onLogoClick, messageCount = 0, notificationCount = 0 }) => {
+const Sidebar = ({ activeTab, setActiveTab, onLogoClick, messageCount = 0, notificationCount = 0, receivedBidsCount = 0 }) => {
   const { activeRole, logout, user, toggleActiveRole } = useAuth();
 
   const buyerMenu = [
     { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard },
     { id: 'requests', name: 'My Requests', icon: FileText },
-    { id: 'receivedBids', name: 'Received Bids', icon: Gavel },
+    { id: 'receivedBids', name: 'Received Bids', icon: Gavel, badge: receivedBidsCount > 0 ? receivedBidsCount : undefined },
     { id: 'messages', name: 'Messages', icon: MessageSquare, badge: messageCount },
     { id: 'notifications', name: 'Notifications', icon: Bell, badge: notificationCount },
     { id: 'orders', name: 'My Orders', icon: ShoppingBag },

@@ -75,6 +75,11 @@ function AppContent() {
   const [buyerRequests, setBuyerRequests] = useState([]);
   const [buyerRequestsLoading, setBuyerRequestsLoading] = useState(false);
 
+  // Buyer received bids state (actual bids submitted by sellers for buyer's requests)
+  const [receivedBids, setReceivedBids] = useState([]);
+  const [receivedBidsLoading, setReceivedBidsLoading] = useState(false);
+  const [receivedBidsFilter, setReceivedBidsFilter] = useState('All');
+
   // Message & Notification count states
   const [messageCount, setMessageCount] = useState(0);
   const [buyerNotifications, setBuyerNotifications] = useState([]);
@@ -137,9 +142,10 @@ function AppContent() {
     }
   }, [user, activeRole, activeTab, browseCategory]);
 
-  // Load buyer requests when viewing received bids
+  // Load buyer received bids and requests when viewing received bids tab
   useEffect(() => {
     if (user && activeRole === 'Buyer' && activeTab === 'receivedBids') {
+      fetchReceivedBids();
       fetchBuyerRequests();
     }
   }, [user, activeRole, activeTab]);
@@ -288,6 +294,38 @@ function AppContent() {
       console.error('Error fetching buyer requests for comparison:', err);
     } finally {
       setBuyerRequestsLoading(false);
+    }
+  };
+
+  const fetchReceivedBids = async () => {
+    try {
+      setReceivedBidsLoading(true);
+      const res = await fetch('/api/bids/received');
+      const data = await res.json();
+      if (data.success) {
+        setReceivedBids(data.data || []);
+      }
+    } catch (err) {
+      console.error('Error fetching received bids:', err);
+    } finally {
+      setReceivedBidsLoading(false);
+    }
+  };
+
+  const handleBuyerUpdateBidStatus = async (bidId, nextStatus) => {
+    try {
+      const res = await fetch(`/api/bids/${bidId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: nextStatus })
+      });
+      const data = await res.json();
+      if (data.success) {
+        fetchReceivedBids();
+        fetchBuyerRequests();
+      }
+    } catch (err) {
+      console.error('Error updating bid status:', err);
     }
   };
 
@@ -499,93 +537,268 @@ function AppContent() {
             }
           };
 
+          const filteredReceivedBids = receivedBids.filter(bid => {
+            if (receivedBidsFilter === 'All') return true;
+            return bid.status === receivedBidsFilter;
+          });
+
           return (
             <div className="p-8 space-y-6 max-w-7xl mx-auto">
-              <div>
-                <h2 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-                  <Gavel className="w-6 h-6 text-brand" />
-                  Compare Received Bids
-                </h2>
-                <p className="text-slate-400 text-sm mt-1">
-                  Select one of your requests below to view and compare bids submitted by sellers.
-                </p>
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <h2 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+                    <Gavel className="w-6 h-6 text-brand" />
+                    Received Bids from Sellers
+                  </h2>
+                  <p className="text-slate-400 text-sm mt-1">
+                    Review and evaluate proposals submitted by verified sellers on your posted requirements.
+                  </p>
+                </div>
+
+                {/* Filter Tabs */}
+                <div className="flex bg-darkBg border border-darkBg-border p-0.5 rounded-xl text-xs font-semibold overflow-x-auto max-w-full">
+                  {['All', 'Pending', 'Shortlisted', 'Accepted'].map((tab) => {
+                    const count = tab === 'All' 
+                      ? receivedBids.length 
+                      : receivedBids.filter(b => b.status === tab).length;
+                    return (
+                      <button
+                        key={tab}
+                        onClick={() => setReceivedBidsFilter(tab)}
+                        className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                          receivedBidsFilter === tab 
+                            ? 'bg-brand text-white font-bold' 
+                            : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        <span>{tab === 'All' ? 'All Bids' : tab}</span>
+                        <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
+                          receivedBidsFilter === tab ? 'bg-white/20 text-white' : 'bg-darkBg-card text-slate-400'
+                        }`}>
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
-              {buyerRequestsLoading ? (
-                <div className="bg-darkBg-card border border-darkBg-border p-12 rounded-3xl text-center text-slate-500 text-xs flex flex-col items-center gap-3">
+              {receivedBidsLoading ? (
+                <div className="bg-darkBg-card border border-darkBg-border p-12 rounded-3xl text-center text-slate-500 text-xs flex flex-col items-center gap-3 shadow-xl">
                   <div className="w-8 h-8 border-4 border-brand border-t-transparent rounded-full animate-spin"></div>
-                  <span>Loading your requests...</span>
+                  <span>Loading received bids...</span>
                 </div>
-              ) : buyerRequests.length === 0 ? (
-                <div className="bg-darkBg-card border border-darkBg-border p-12 rounded-3xl text-center text-slate-500 text-xs flex flex-col items-center gap-3">
-                  <Gavel className="w-10 h-10 text-slate-600" />
-                  <span>You have not posted any requests yet. Create a request on the Dashboard to start receiving bids!</span>
+              ) : receivedBids.length === 0 ? (
+                <div className="bg-darkBg-card border border-darkBg-border p-12 rounded-3xl text-center text-slate-500 text-xs flex flex-col items-center gap-4 shadow-xl">
+                  <div className="w-14 h-14 rounded-2xl bg-brand/10 border border-brand/20 flex items-center justify-center text-brand">
+                    <Gavel className="w-7 h-7" />
+                  </div>
+                  <div className="space-y-1 max-w-md">
+                    <h3 className="text-base font-bold text-white">No Bids Received Yet</h3>
+                    <p className="text-slate-400 text-xs leading-relaxed">
+                      You haven't received any bids on your active requests yet. As soon as sellers submit proposals, they will appear here with price offers and quality match scores.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setActiveTab('requests')}
+                    className="px-5 py-2.5 bg-brand hover:bg-brand-hover text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-brand/20"
+                  >
+                    View My Requests
+                  </button>
+                </div>
+              ) : filteredReceivedBids.length === 0 ? (
+                <div className="bg-darkBg-card border border-darkBg-border p-12 rounded-3xl text-center text-slate-500 text-xs shadow-xl">
+                  No {receivedBidsFilter.toLowerCase()} bids found.
                 </div>
               ) : (
-                <div className="bg-darkBg-card border border-darkBg-border rounded-3xl p-6 shadow-xl space-y-4">
-                  <div className="divide-y divide-darkBg-border">
-                    {buyerRequests.map((req) => (
+                <div className="space-y-4">
+                  {filteredReceivedBids.map((bid) => {
+                    const score = bid.qualityScore !== undefined ? bid.qualityScore : 100;
+                    let scoreBadgeColor = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
+                    if (score < 70) {
+                      scoreBadgeColor = 'bg-rose-500/10 text-rose-400 border-rose-500/30';
+                    } else if (score < 90) {
+                      scoreBadgeColor = 'bg-amber-500/10 text-amber-400 border-amber-500/30';
+                    }
+
+                    const isBelowBudget = bid.request?.budget && bid.bidAmount < bid.request.budget;
+                    const diffAmount = bid.request?.budget ? Math.abs(bid.request.budget - bid.bidAmount) : 0;
+
+                    return (
                       <div 
-                        key={req._id}
-                        onClick={() => setCurrentCompareRequest(req)}
-                        className="py-5 flex flex-col sm:flex-row sm:items-center justify-between hover:bg-darkBg-hover/30 px-3 -mx-3 rounded-2xl cursor-pointer transition-all duration-200 group gap-4"
+                        key={bid._id}
+                        className="bg-darkBg-card border border-darkBg-border rounded-3xl p-6 shadow-xl space-y-4 hover:border-brand/30 transition-all duration-200"
                       >
-                        <div className="flex items-center gap-4">
-                          <img 
-                            src={req.images?.[0] || 'https://images.unsplash.com/photo-1546868871-7041f2a55e12?q=80&w=100'} 
-                            alt={req.title} 
-                            className="w-14 h-14 rounded-xl object-cover border border-darkBg-border flex-shrink-0"
-                          />
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              <h4 className="text-sm font-bold text-white group-hover:text-brand transition-colors">
-                                {req.title}
-                              </h4>
-                              {req.featured && (
-                                <span className="text-[9px] bg-brand/10 text-brand px-1.5 py-0.5 rounded font-bold uppercase">
-                                  Featured
+                        {/* Top: Seller Info + Target Request Header */}
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-darkBg-border/40">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center font-bold text-brand text-sm flex-shrink-0">
+                              {bid.seller?.name ? bid.seller.name.charAt(0).toUpperCase() : 'S'}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h4 className="text-sm font-bold text-white">
+                                  {bid.seller?.businessName || bid.seller?.name || 'Verified Seller'}
+                                </h4>
+                                <span className="flex items-center gap-0.5 text-yellow-400 text-xs font-bold bg-yellow-500/10 px-1.5 py-0.5 rounded">
+                                  <Star className="w-3 h-3 fill-current" />
+                                  <span>{bid.seller?.rating || '5.0'}</span>
+                                </span>
+                              </div>
+                              <span className="text-[11px] text-slate-400">
+                                {bid.seller?.email || 'Seller Partner'}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Request badge & Status */}
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {bid.request && (
+                              <button
+                                onClick={() => setCurrentCompareRequest(bid.request)}
+                                className="text-xs bg-darkBg border border-darkBg-border px-3 py-1 rounded-xl text-slate-300 hover:text-brand hover:border-brand/40 transition-colors flex items-center gap-1.5 group"
+                              >
+                                <span className="text-slate-500 group-hover:text-brand">For:</span>
+                                <span className="font-bold text-white group-hover:text-brand line-clamp-1 max-w-[200px]">
+                                  {bid.request.title}
+                                </span>
+                                <ExternalLink className="w-3 h-3 text-slate-500 group-hover:text-brand" />
+                              </button>
+                            )}
+
+                            <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider border ${
+                              bid.status === 'Accepted'
+                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                                : bid.status === 'Shortlisted'
+                                ? 'bg-blue-500/10 text-blue-400 border-blue-500/30'
+                                : bid.status === 'Outbid'
+                                ? 'bg-rose-500/10 text-rose-400 border-rose-500/30'
+                                : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                            }`}>
+                              {bid.status}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Middle: Details Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                          {/* Price Offer & Savings */}
+                          <div className="md:col-span-3 bg-[#0b0d19] p-3.5 rounded-2xl border border-darkBg-border/50 space-y-1">
+                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Price Offer</span>
+                            <span className="text-xl font-extrabold text-white block">₹{bid.bidAmount.toLocaleString()}</span>
+                            {bid.request?.budget && (
+                              <span className={`text-[10px] font-semibold block ${isBelowBudget ? 'text-emerald-400' : 'text-slate-400'}`}>
+                                {isBelowBudget ? `₹${diffAmount.toLocaleString()} below budget` : `Budget: ₹${bid.request.budget.toLocaleString()}`}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Quality Match Score */}
+                          <div className="md:col-span-3 bg-[#0b0d19] p-3.5 rounded-2xl border border-darkBg-border/50 space-y-1">
+                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Quality Match (QARM)</span>
+                            <div className="flex items-center gap-1.5">
+                              <span className={`text-xs px-2.5 py-1 rounded-lg font-extrabold border ${scoreBadgeColor}`}>
+                                ⭐ {score}% Match
+                              </span>
+                            </div>
+                            <span className="text-[10px] text-slate-400 block mt-0.5">
+                              {score >= 90 ? 'High Specification Match' : score >= 70 ? 'Good Match' : 'Partial Match'}
+                            </span>
+                          </div>
+
+                          {/* Delivery timeline */}
+                          <div className="md:col-span-2 bg-[#0b0d19] p-3.5 rounded-2xl border border-darkBg-border/50 space-y-1">
+                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Delivery</span>
+                            <span className="text-sm font-bold text-white block flex items-center gap-1">
+                              <Clock className="w-3.5 h-3.5 text-brand" />
+                              {bid.deliveryTime} Days
+                            </span>
+                            <span className="text-[10px] text-slate-500 block">Fast Turnaround</span>
+                          </div>
+
+                          {/* Proposal Message & Chips */}
+                          <div className="md:col-span-4 bg-[#0b0d19] p-3.5 rounded-2xl border border-darkBg-border/50 space-y-2">
+                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Proposal Details</span>
+                            <p className="text-xs text-slate-300 line-clamp-2 italic">
+                              "{bid.proposalMessage || 'I am ready to fulfill this requirement with top quality guarantee.'}"
+                            </p>
+                            <div className="flex flex-wrap gap-1.5 pt-1">
+                              {bid.specsCompliance && bid.specsCompliance.length > 0 && (
+                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-300 border border-rose-500/20 font-bold">
+                                  ✓ {bid.specsCompliance.filter(c => c.satisfied).length}/{bid.specsCompliance.length} Mandatory Met
+                                </span>
+                              )}
+                              {bid.preferredOffered && bid.preferredOffered.length > 0 && (
+                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-bold">
+                                  ★ {bid.preferredOffered.filter(p => p.included).length} Perks Included
                                 </span>
                               )}
                             </div>
-                            <p className="text-xs text-slate-400 font-medium">
-                              {req.category} • Budget: <strong className="text-white font-semibold">₹{req.budget.toLocaleString()}</strong>
-                            </p>
-                            <p className="text-[11px] text-slate-500 flex items-center gap-1">
-                              <Clock className="w-3.5 h-3.5" />
-                              <span>Deadline: {new Date(req.deadline).toLocaleDateString()}</span>
-                              <span className="text-brand font-semibold ml-1">({getRemainingDaysApp(req.deadline)})</span>
-                            </p>
                           </div>
                         </div>
 
-                        <div className="flex items-center justify-between sm:justify-end gap-6 self-stretch sm:self-auto">
-                          <div className="text-left sm:text-right">
-                            <span className={`text-xs px-2.5 py-1 rounded-full font-bold inline-block sm:hidden ${getStatusColorApp(req.status)} mb-2`}>
-                              {req.status}
-                            </span>
-                            <div className="flex items-center gap-2 sm:block">
-                              <span className="text-sm font-extrabold text-white block">
-                                {req.bidCount || 0}
-                              </span>
-                              <span className="text-[10px] text-slate-500 block">
-                                {req.status === 'In Progress' || req.status === 'Completed' ? 'Accepted Bid' : 'Bids Received'}
-                              </span>
-                            </div>
-                          </div>
-                          
-                          <div className="flex items-center gap-3">
-                            <span className={`hidden sm:inline-block text-[11px] px-2.5 py-1 rounded-full font-bold ${getStatusColorApp(req.status)}`}>
-                              {req.status}
-                            </span>
-                            <button className="text-xs font-bold text-brand bg-brand/10 hover:bg-brand hover:text-white px-4 py-2 rounded-xl transition-all flex items-center gap-1">
-                              Compare
-                              <ChevronRight className="w-3.5 h-3.5" />
-                            </button>
+                        {/* Bottom Actions Row */}
+                        <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-2">
+                          <span className="text-[10px] text-slate-500">
+                            Submitted {formatRelativeTime(new Date(bid.createdAt))}
+                          </span>
+
+                          <div className="flex items-center gap-2 flex-wrap justify-end">
+                            {bid.status === 'Pending' && (
+                              <>
+                                <button
+                                  onClick={() => handleBuyerUpdateBidStatus(bid._id, 'Shortlisted')}
+                                  className="px-3.5 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-xl text-xs font-bold transition-all"
+                                >
+                                  Shortlist
+                                </button>
+                                <button
+                                  onClick={() => handleBuyerUpdateBidStatus(bid._id, 'Accepted')}
+                                  className="px-4 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-500/20 flex items-center gap-1"
+                                >
+                                  <Check className="w-3.5 h-3.5" />
+                                  <span>Accept Proposal</span>
+                                </button>
+                              </>
+                            )}
+
+                            {bid.status === 'Shortlisted' && (
+                              <button
+                                onClick={() => handleBuyerUpdateBidStatus(bid._id, 'Accepted')}
+                                className="px-4 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-500/20 flex items-center gap-1"
+                              >
+                                <Check className="w-3.5 h-3.5" />
+                                <span>Accept Proposal</span>
+                              </button>
+                            )}
+
+                            {bid.seller && (
+                              <button
+                                onClick={() => {
+                                  setDefaultChatRecipient(bid.seller);
+                                  setActiveTab('messages');
+                                }}
+                                className="px-3.5 py-1.5 border border-darkBg-border hover:bg-darkBg-hover text-slate-300 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all"
+                              >
+                                <MessageSquare className="w-3.5 h-3.5 text-brand" />
+                                <span>Chat</span>
+                              </button>
+                            )}
+
+                            {bid.request && (
+                              <button
+                                onClick={() => setCurrentCompareRequest(bid.request)}
+                                className="px-3.5 py-1.5 bg-brand/10 hover:bg-brand text-brand hover:text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1"
+                              >
+                                <span>Compare Matrix</span>
+                                <ChevronRight className="w-3.5 h-3.5" />
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -1385,6 +1598,7 @@ function AppContent() {
         onLogoClick={() => setViewingHomepage(true)}
         messageCount={displayMessageCount}
         notificationCount={displayNotificationCount}
+        receivedBidsCount={receivedBids.length}
       />
 
       {/* Main Container Shell */}

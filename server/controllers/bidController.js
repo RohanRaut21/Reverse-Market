@@ -126,6 +126,44 @@ export const getMyBids = async (req, res) => {
   }
 };
 
+// @desc    Get all bids received by buyer across all their requests
+// @route   GET /api/bids/received
+// @access  Private (Buyer)
+export const getReceivedBids = async (req, res) => {
+  try {
+    const userId = req.user?._id || req.user?.id;
+
+    // 1. Find all requests posted by this buyer
+    const myRequests = await Request.find({ buyer: userId }, '_id');
+    const myRequestIds = myRequests.map(r => r._id);
+
+    if (myRequestIds.length === 0) {
+      return res.status(200).json({
+        success: true,
+        count: 0,
+        data: [],
+      });
+    }
+
+    // 2. Find all bids submitted for these requests by other sellers (strictly excluding self)
+    const bids = await Bid.find({
+      request: { $in: myRequestIds },
+      seller: { $ne: userId }
+    })
+      .populate('seller', 'name email rating profileImage businessName phone')
+      .populate('request', 'title category budget deadline status mandatorySpecs preferredSpecs')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: bids.length,
+      data: bids,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // @desc    Update bid status (Accept, Shortlist, Withdraw)
 // @route   PUT /api/bids/:id
 // @access  Private

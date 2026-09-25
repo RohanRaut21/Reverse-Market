@@ -3,6 +3,7 @@ import {
   placeBid,
   getBidsForRequest,
   getMyBids,
+  getReceivedBids,
   updateBidStatus
 } from '../controllers/bidController.js';
 import { protect, restrictTo } from '../middleware/auth.js';
@@ -12,6 +13,7 @@ const router = express.Router();
 router.use(protect); // All bid routes require authentication
 
 router.post('/', placeBid);
+router.get('/received', getReceivedBids);
 router.get('/request/:requestId', getBidsForRequest);
 router.get('/my', getMyBids);
 router.put('/:id', updateBidStatus);
